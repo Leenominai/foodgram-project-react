@@ -112,7 +112,7 @@ class UserViewSet(viewsets.ModelViewSet):
         Права доступа: Только аутентифицированные пользователи
         """
         user = self.get_object()
-        followers = user.followers.all()
+        followers = user.following.all()
         serializer = SubscribeSerializer(followers, many=True)
         return Response(serializer.data)
 

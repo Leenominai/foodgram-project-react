@@ -96,7 +96,8 @@ class SubscribeSerializer(UserSerializer):
 
     def get_is_subscribed(self, obj):
         """Проверки подписки на пользователя."""
-        return True
+        user = self.context['request'].user
+        return user.following.filter(author=obj).exists()
 
     def get_recipes_count(self, obj):
         """Количество рецептов для каждого пользователя."""
