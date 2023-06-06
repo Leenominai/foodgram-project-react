@@ -16,7 +16,7 @@ from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from recipes.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
-from users.models import User
+from users.models import User, Subscription
 from .serializers import (
     TagSerializer,
     IngredientSerializer,
@@ -69,7 +69,7 @@ class UserViewSet(viewsets.ModelViewSet):
         Список подписок пользователя.
         """
         user = self.get_object()
-        subscriptions = user.subscriptions.all()
+        subscriptions = user.follower.all()
         serializer = SubscribeSerializer(subscriptions, many=True)
         return Response(serializer.data)
 
@@ -89,6 +89,19 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(
         methods=['get'],
+        detail=False,
+        permission_classes=[IsAuthenticated]
+    )
+    def my(self, request):
+        """
+        Информация о текущем пользователе.
+        """
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+
+    @action(
+        methods=['get'],
         detail=True,
         permission_classes=[IsAuthenticated]
     )
@@ -99,19 +112,6 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         recipes = user.recipes.all()
         serializer = RecipeSerializer(recipes, many=True)
-        return Response(serializer.data)
-
-    @action(
-        methods=['get'],
-        detail=False,
-        permission_classes=[IsAuthenticated]
-    )
-    def my(self, request):
-        """
-        Информация о текущем пользователе.
-        """
-        user = request.user
-        serializer = UserSerializer(user)
         return Response(serializer.data)
 
     @action(
@@ -155,7 +155,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user = request.user
         if request.method == 'POST':
             if author != user:
-                user.subscriptions.get_or_create(author=author)
+                author.following.get_or_create(user=user)
                 return Response(status=status.HTTP_200_OK)
             else:
                 return Response(
@@ -164,24 +164,13 @@ class UserViewSet(viewsets.ModelViewSet):
                 )
         elif request.method == 'DELETE':
             if author != user:
-                user.subscriptions.filter(author=author).delete()
+                author.following.filter(user=user).delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
             else:
                 return Response(
                     {"detail": "Вы не можете отписаться от себя."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-
-    @action(
-        methods=['delete'],
-        detail=True,
-        permission_classes=[IsAuthenticated]
-    )
-    def unsubscribe(self, request, pk):
-        """
-        Отписка от пользователя.
-        """
-        return self.subscribe(request, pk)
 
     @action(
         methods=['post'],

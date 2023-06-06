@@ -14,7 +14,9 @@ from users.models import User
 
 
 class Tag(models.Model):
-    """Модель Тега для ингредиентов."""
+    """
+    Модель Тега для ингредиентов.
+    """
     name = models.CharField(
         'Название тега',
         max_length=Limits.MAX_LEN_TAG.value,
@@ -44,7 +46,9 @@ class Tag(models.Model):
 
 
 class Ingredient(models.Model):
-    """Модель ингредиентов."""
+    """
+    Модель ингредиентов.
+    """
     name = models.CharField(
         'Название ингредиента',
         max_length=Limits.MAX_LEN_INGREDIENT.value,
@@ -63,7 +67,9 @@ class Ingredient(models.Model):
 
 
 class Recipe(models.Model):
-    """Модель заполнения рецептов."""
+    """
+    Модель заполнения рецептов.
+    """
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -124,7 +130,9 @@ class Recipe(models.Model):
 
 
 class RecipeIngredient(models.Model):
-    """Модель использования ингредиентов в рецепте."""
+    """
+    Модель использования ингредиентов в рецепте.
+    """
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
@@ -149,7 +157,9 @@ class RecipeIngredient(models.Model):
 
 
 class Favorite(models.Model):
-    """Модель избранных рецептов."""
+    """
+    Модель избранных рецептов.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -179,7 +189,9 @@ class Favorite(models.Model):
 
 
 class ShoppingCart(models.Model):
-    """Модель списка покупок."""
+    """
+    Модель списка покупок.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
