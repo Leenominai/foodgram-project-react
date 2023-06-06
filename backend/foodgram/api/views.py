@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, F
+from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.contrib.auth.models import User
 from recipes.models import Tag, Ingredient, Recipe, Favorite, ShoppingCart, RecipeIngredient
@@ -347,12 +348,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
             recipeingredients__recipe__carts__user=user
         ).values(
             'name',
-            measurement=F('recipeingredients__amount'),
-            recipe_name=F('recipeingredients__recipe__name')
-        ).annotate(amount=Sum('recipeingredients__amount'))
+            measurement=F('measure_unit'),
+        ).annotate(
+            amount=Coalesce(Sum('recipeingredients__amount'), 0)
+        ).order_by('name').distinct()
 
         for ing in ingredients:
-            shopping_list.append([ing['name'], ing['amount'], ing['measurement'], ing['recipe_name']])
+            shopping_list.append([ing['name'], ing['amount'], ing['measurement']])
 
         shopping_list.append(['', '', 'Посчитано в Foodgram'])
 
