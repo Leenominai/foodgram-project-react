@@ -3,6 +3,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from django.db.models import F
 from django.db.transaction import atomic
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import make_password
 from typing import List
 from drf_extra_fields.fields import Base64ImageField
 from .validators import validate_tags, ingredients_validator
@@ -16,6 +18,7 @@ from users.models import User, Subscription
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователей."""
     is_subscribed = SerializerMethodField()
+    favorites = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -27,7 +30,11 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'password',
             'is_subscribed',
+            'favorites',
         )
+        extra_kwargs = {
+            'password': {'write_only': True},
+        }
         read_only_fields = ('is_subscribed', )
 
     def get_is_subscribed(self, obj):
@@ -37,34 +44,22 @@ class UserSerializer(serializers.ModelSerializer):
                     user=request.user, author=obj
                 ).exists())
 
+    def validate_password(self, value):
+        validate_password(value)
+        return value
+
     def validate(self, attrs):
-        if User.object.filter(
-                username=attrs.get('username'),
-                email=attrs.get('email')).exists():
-            pass
-        if (User.object.filter(username=attrs.get('username')).exists()
-                and not User.object.filter(email=attrs.get('email')).exists()):
-            raise serializers.ValidationError(
-                "Пользователь с таким username уже есть."
-            )
-        if (User.object.filter(email=attrs.get('email')).exists()
-                and not User.object.filter(
-                    username=attrs.get('username')).exists()):
-            raise serializers.ValidationError(
-                "Пользователь с таким email уже есть."
-            )
+        attrs = super().validate(attrs)
+        if User.objects.filter(username=attrs.get('username')).exists():
+            raise serializers.ValidationError("Пользователь с таким username уже есть.")
+        if User.objects.filter(email=attrs.get('email')).exists():
+            raise serializers.ValidationError("Пользователь с таким email уже есть.")
         return attrs
 
     def create(self, validated_data: dict) -> User:
         """Создание нового пользователя."""
-        user = User(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-        )
-        user.set_password(validated_data['password'])
-        user.save()
+        validated_data['password'] = make_password(validated_data['password'])
+        user = User.objects.create(**validated_data)
         return user
 
 
@@ -100,9 +95,9 @@ class SubscribeSerializer(UserSerializer):
             'recipes',
             'recipes_count',
         )
-        read_only_fields = '__all__',
+        read_only_fields = ('__all__',)
 
-    def get_is_subscribed(*args):
+    def get_is_subscribed(self, obj):
         """Проверки подписки на пользователя."""
         return True
 
@@ -116,12 +111,12 @@ class TagSerializer(ModelSerializer):
     class Meta:
         model = Tag
         fields = '__all__'
-        read_only_fields = '__all__',
+        read_only_fields = ('__all__',)
 
     def validate(self, data):
         """Приводим теги к одному варианту."""
         for attr, value in data.items():
-            data[attr] = value.sttrip(' #').upper()
+            data[attr] = value.strip(' #').upper()
         return data
 
 
@@ -130,7 +125,7 @@ class IngredientSerializer(ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
-        read_only_fields = '__all__'
+        read_only_fields = ('__all__',)
 
 
 class RecipeSerializer(ModelSerializer):
@@ -162,25 +157,27 @@ class RecipeSerializer(ModelSerializer):
             'is_in_shopping_cart',
         )
         read_only_fields = (
-            'is_favorite',
-            'is_shopping_cart',
+            'is_favorited',
+            'is_in_shopping_cart',
         )
 
     def get_ingredients(self, recipe):
         """Список ингридиентов для рецепта."""
-        ingredients = recipe.ingredients.values(
-            'id', 'name', 'measurement_unit', amount=F('recipe__amount')
+        recipe_ingredients = RecipeIngredient.objects.filter(recipe=recipe)
+        ingredients = recipe_ingredients.values(
+            'ingredient__id',
+            'ingredient__name',
+            'ingredient__measure_unit',
+            'amount'
         )
         return ingredients
 
-    def get_is_favorited(self, recipe):
-        """Проверка нахождения рецепта в избранном."""
-        user = self.context.get('view').request.user
-
-        if user.is_anonymous:
-            return False
-
-        return user.favorites.filter(recipe=recipe).exists()
+    def get_is_favorited(self, obj):
+        request = self.context.get('request')
+        user = request.user
+        if user.is_authenticated:
+            return obj.favorites.filter(user=user).exists()
+        return False
 
     def get_is_in_shopping_cart(self, recipe: Recipe) -> bool:
         """Проверка нахождения рецепта в списке покупок"""

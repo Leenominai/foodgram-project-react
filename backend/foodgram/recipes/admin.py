@@ -49,8 +49,9 @@ class RecipeIngredientInline(admin.TabularInline):
 class RecipeAdmin(admin.ModelAdmin):
     list_display = (
         'pk',
+        'name',
+        'pub_date',
         'author',
-        'image',
         'favorites_count',
     )
     search_fields = (

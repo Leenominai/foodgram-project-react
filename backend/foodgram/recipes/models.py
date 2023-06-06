@@ -1,7 +1,14 @@
+from datetime import datetime
+
 from django.db import models
 
 from .variables import Limits
-from .validators import validate_name, validate_cooking_time, validate_ingredients_amount
+from .validators import (
+    validate_name,
+    validate_cooking_time,
+    validate_ingredients_amount,
+    validate_text
+)
 
 from users.models import User
 
@@ -63,6 +70,11 @@ class Recipe(models.Model):
         related_name='recipes',
         verbose_name='Автор',
     )
+    pub_date = models.DateTimeField(
+        verbose_name='Дата публикации',
+        auto_now_add=True,
+        editable=False,
+    )
     name = models.CharField(
         'Название рецепта',
         max_length=Limits.MAX_LEN_NAME.value,
@@ -85,6 +97,7 @@ class Recipe(models.Model):
         blank=False,
         null=False,
         help_text='Введите описание рецепта',
+        validators=[validate_text, ],
     )
     ingredients = models.ManyToManyField(
         Ingredient,
@@ -98,6 +111,7 @@ class Recipe(models.Model):
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
         validators=[validate_cooking_time, ],
+        help_text='Выберите время в минутах',
     )
 
     class Meta:

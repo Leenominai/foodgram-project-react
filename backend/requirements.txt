@@ -11,3 +11,5 @@ pytest-pythonpath==0.7.3
 Pillow==9.5.0
 django-extra-fields==3.0.2
 djoser
+djangorestframework-simplejwt==4.7.2
+PyJWT==2.1.0

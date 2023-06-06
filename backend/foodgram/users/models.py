@@ -11,7 +11,7 @@ class User(AbstractUser):
     """
     username = models.CharField(
         'Имя пользователя',
-        max_length=Limits.MAX_LEN_USERNAME.value,
+        max_length=Limits.MAX_LEN_USERNAME,
         unique=True,
         blank=False,
         null=False,
@@ -20,7 +20,7 @@ class User(AbstractUser):
     )
     email = models.EmailField(
         'Электронная почта',
-        max_length=Limits.MAX_LEN_EMAIL.value,
+        max_length=Limits.MAX_LEN_EMAIL,
         unique=True,
         blank=False,
         null=False,
@@ -29,7 +29,7 @@ class User(AbstractUser):
     )
     first_name = models.CharField(
         'Имя',
-        max_length=Limits.MAX_LEN_NAMES.value,
+        max_length=Limits.MAX_LEN_NAMES,
         blank=False,
         null=False,
         help_text='Введите своё имя',
@@ -37,7 +37,7 @@ class User(AbstractUser):
     )
     last_name = models.CharField(
         'Фамилия',
-        max_length=Limits.MAX_LEN_NAMES.value,
+        max_length=Limits.MAX_LEN_NAMES,
         blank=False,
         null=False,
         help_text='Введите свою фамилию',
@@ -45,10 +45,14 @@ class User(AbstractUser):
     )
     password = models.CharField(
         'Пароль',
-        max_length=Limits.MAX_LEN_PASSWORD.value,
+        max_length=Limits.MAX_LEN_PASSWORD,
         blank=False,
         null=False,
         help_text='Придумайте пароль',
+    )
+    is_active = models.BooleanField(
+        verbose_name='Пользователь активировен',
+        default=True,
     )
 
     class Meta:
