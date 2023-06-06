@@ -22,7 +22,8 @@ from .serializers import (
     IngredientSerializer,
     RecipeSerializer,
     SubscribeSerializer,
-    UserSerializer
+    UserSerializer,
+    FavoriteSerializer
 )
 from .permissions import IsAuthorAdminModeratorOrReadOnly, AdminOrReadOnly
 from .paginators import PageLimitPagination
@@ -98,48 +99,6 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         user = request.user
         serializer = UserSerializer(user)
-        return Response(serializer.data)
-
-    @action(
-        methods=['get'],
-        detail=True,
-        permission_classes=[IsAuthenticated]
-    )
-    def recipes(self, request, pk):
-        """
-        Список рецептов пользователя.
-        """
-        user = self.get_object()
-        recipes = user.recipes.all()
-        serializer = RecipeSerializer(recipes, many=True)
-        return Response(serializer.data)
-
-    @action(
-        methods=['get'],
-        detail=True,
-        permission_classes=[AllowAny]
-    )
-    def favorites(self, request, pk):
-        """
-        Избранные рецепты пользователя.
-        """
-        user = self.get_object()
-        favorites = user.favorites.all()
-        serializer = RecipeSerializer(favorites, many=True)
-        return Response(serializer.data)
-
-    @action(
-        methods=['get'],
-        detail=False,
-        permission_classes=[IsAuthenticated]
-    )
-    def shopping_cart(self, request):
-        """
-        Список рецептов в списке покупок пользователя.
-        """
-        user = request.user
-        shopping_cart = user.shopping_cart.all()
-        serializer = RecipeSerializer(shopping_cart, many=True)
         return Response(serializer.data)
 
     @action(
@@ -259,8 +218,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         is_favorite = self.request.query_params.get('favorite')
         if is_favorite is not None:
             is_favorite = is_favorite.lower() == 'true'
-            queryset = queryset.filter(favorites__user=self.request.user) if is_favorite else queryset.exclude(
-                favorites__user=self.request.user)
+            queryset = queryset.filter(favorites_received__user=self.request.user) if is_favorite else queryset.exclude(
+                favorites_received__user=self.request.user)
 
         is_in_cart = self.request.query_params.get('shopping_cart')
         if is_in_cart is not None:
@@ -357,3 +316,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename={filename}'
 
         return response
+
+    @action(detail=True, methods=['get'])
+    def user_recipes(self, request, pk=None):
+        """
+        Получение всех рецептов определенного пользователя.
+        """
+        user = get_object_or_404(User, pk=pk)
+        recipes = Recipe.objects.filter(author=user)
+        page = self.paginate_queryset(recipes)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(recipes, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def user_favorites(self, request, pk=None):
+        user = User.objects.get(pk=pk)  # Получаем объект пользователя по идентификатору
+        favorites = Favorite.objects.filter(user=user)
+        recipes = [favorite.recipe for favorite in favorites]
+
+        serializer = RecipeSerializer(recipes, many=True, context=self.get_serializer_context())
+        return Response(serializer.data)

@@ -28,7 +28,6 @@ class UserSerializer(serializers.ModelSerializer):
             'last_name',
             'password',
             'is_subscribed',
-            'favorites',
         )
         extra_kwargs = {
             'password': {'write_only': True},
@@ -170,11 +169,12 @@ class RecipeSerializer(ModelSerializer):
         )
         return ingredients
 
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        user = request.user
+    def get_is_favorited(self, recipe: Recipe) -> bool:
+        user = self.context.get('view').request.user
+
         if user.is_authenticated:
-            return obj.favorites.filter(user=user).exists()
+            return user.favorites_received.filter(recipe=recipe).exists()
+
         return False
 
     def get_is_in_shopping_cart(self, recipe: Recipe) -> bool:
@@ -234,3 +234,11 @@ class RecipeSerializer(ModelSerializer):
 
         recipe.save()
         return recipe
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    recipe = RecipeSerializer()
+
+    class Meta:
+        model = Favorite
+        fields = ('recipe',)
