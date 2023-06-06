@@ -22,8 +22,7 @@ from .serializers import (
     IngredientSerializer,
     RecipeSerializer,
     SubscribeSerializer,
-    UserSerializer,
-    FavoriteSerializer
+    UserSerializer
 )
 from .permissions import IsAuthorAdminModeratorOrReadOnly, AdminOrReadOnly
 from .paginators import PageLimitPagination
@@ -33,8 +32,17 @@ from .filters import RecipeFilter
 class TagViewSet(ReadOnlyModelViewSet):
     """
     Работает с тегами.
-
-    Изменение и создание тегов разрешено только администраторам.
+    Позволяет получать информацию о тегах, используемых в рецептах.
+    GET /api/tags/ - Получение списка всех тегов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Завтрак",
+            "slug": "breakfast"
+        },
+        ...
+    ]
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
@@ -43,7 +51,19 @@ class TagViewSet(ReadOnlyModelViewSet):
 
 class IngredientViewSet(viewsets.ModelViewSet):
     """
-    Представление для просмотра ингредиентов.
+    Работает с ингредиентами.
+    Позволяет получать информацию о доступных ингредиентах.
+    GET /api/ingredients/ - Получение списка всех ингредиентов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Мука",
+            "measurement_unit": "г",
+            "slug": "flour"
+        },
+        ...
+    ]
     """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
@@ -67,7 +87,11 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def subscriptions(self, request, pk):
         """
-        Список подписок пользователя.
+        Получение списка подписок пользователя.
+
+        Адрес: /api/users/{pk}/subscriptions/
+        Метод: GET
+        Права доступа: Только аутентифицированные пользователи
         """
         user = self.get_object()
         subscriptions = user.follower.all()
@@ -81,7 +105,11 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def followers(self, request, pk):
         """
-        Список подписчиков пользователя.
+        Получение списка подписчиков пользователя.
+
+        Адрес: /api/users/{pk}/followers/
+        Метод: GET
+        Права доступа: Только аутентифицированные пользователи
         """
         user = self.get_object()
         followers = user.followers.all()
@@ -95,7 +123,11 @@ class UserViewSet(viewsets.ModelViewSet):
     )
     def my(self, request):
         """
-        Информация о текущем пользователе.
+        Получение информации о текущем пользователе.
+
+        Адрес: /api/users/my/
+        Метод: GET
+        Права доступа: Только аутентифицированные пользователи
         """
         user = request.user
         serializer = UserSerializer(user)
@@ -109,6 +141,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def subscribe(self, request, pk):
         """
         Подписка/отписка на пользователя.
+
+        Адрес: /api/users/{pk}/subscribe/
+        Метод: POST, DELETE
+        Права доступа: Только аутентифицированные пользователи
         """
         author = get_object_or_404(User, pk=pk)
         user = request.user
@@ -321,6 +357,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def user_recipes(self, request, pk=None):
         """
         Получение всех рецептов определенного пользователя.
+
+        Адрес: /api/users/{pk}/user_recipes/
+        Метод: GET
+        Права доступа: Открытый
         """
         user = get_object_or_404(User, pk=pk)
         recipes = Recipe.objects.filter(author=user)
@@ -333,7 +373,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def user_favorites(self, request, pk=None):
-        user = User.objects.get(pk=pk)  # Получаем объект пользователя по идентификатору
+        """
+        Получение избранных рецептов определенного пользователя.
+
+        Адрес: /api/users/{pk}/user_favorites/
+        Метод: GET
+        Права доступа: Открытый
+        """
+        user = User.objects.get(pk=pk)
         favorites = Favorite.objects.filter(user=user)
         recipes = [favorite.recipe for favorite in favorites]
 

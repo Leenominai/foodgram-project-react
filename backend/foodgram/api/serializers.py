@@ -234,11 +234,3 @@ class RecipeSerializer(ModelSerializer):
 
         recipe.save()
         return recipe
-
-
-class FavoriteSerializer(serializers.ModelSerializer):
-    recipe = RecipeSerializer()
-
-    class Meta:
-        model = Favorite
-        fields = ('recipe',)
