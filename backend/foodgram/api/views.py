@@ -113,8 +113,15 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['GET'])
-    def favorites(self, request, pk=None):
+    @action(
+        methods=['get'],
+        detail=True,
+        permission_classes=[AllowAny]
+    )
+    def favorites(self, request, pk):
+        """
+        Избранные рецепты пользователя.
+        """
         user = self.get_object()
         favorites = user.favorites.all()
         serializer = RecipeSerializer(favorites, many=True)
@@ -196,6 +203,44 @@ class RecipeViewSet(viewsets.ModelViewSet):
     Включает создание, изменение, удаление рецептов,
     добавление рецептов в избранное и список покупок,
     а также отправку файла со списком рецептов.
+
+    URL-адреса для действий в этом представлении:
+
+    - `favorites`: POST и DELETE запросы по адресу
+      `/api/recipes/{pk}/favorites/` позволяют добавлять и удалять рецепты из
+      избранного для конкретного рецепта с идентификатором `{pk}`.
+    - `shopping_cart`: POST и DELETE запросы по адресу
+      `/api/recipes/{pk}/shopping_cart/` позволяют добавлять и удалять рецепты
+      из списка покупок для конкретного рецепта с идентификатором `{pk}`.
+    - `download_shopping_cart`: GET запрос по адресу
+      `/api/recipes/download_shopping_cart/` позволяет скачать файл CSV со
+      списком покупок для текущего пользователя.
+
+    При выполнении действий `favorites` и `shopping_cart` необходимо предоставить
+    токен авторизации в заголовке `Authorization` в формате
+    `Token <ваш_токен_авторизации>`.
+
+    Параметры фильтрации для списка рецептов:
+
+    - `tags`: список тегов рецептов, по которым будет производиться фильтрация.
+    - `author`: фильтрация по имени автора рецепта.
+    - `shopping_cart`: значение `true` или `false` для фильтрации рецептов в
+      списке покупок.
+    - `favorite`: значение `true` или `false` для фильтрации избранных рецептов
+      для текущего пользователя.
+
+    При выполнении фильтрации по `tags` и `author` будет возвращен список рецептов,
+    соответствующих фильтру. При выполнении фильтрации по `shopping_cart` и
+    `favorite` будет возвращен список рецептов, принадлежащих текущему пользователю
+    и находящихся в списке покупок или избранном соответственно.
+
+    При выполнении запроса `download_shopping_cart` будет сформирован файл CSV со
+    списком покупок для текущего пользователя.
+
+    При выполнении запросов на создание и удаление избранного или списка покупок
+    будет возвращен статусный код 200 OK в случае успешного выполнения запроса или
+    статусный код 400 BAD REQUEST, если произошла ошибка или указанный рецепт уже
+    находится в избранном или списке покупок.
     """
     queryset = Recipe.objects.select_related('author')
     serializer_class = RecipeSerializer
@@ -221,53 +266,66 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if self.request.user.is_anonymous:
             return queryset
 
-        is_in_cart = self.request.query_params.get('shopping_cart')
-        if is_in_cart is not None and is_in_cart.lower() == 'true':
-            queryset = queryset.filter(in_cart=True)
-        elif is_in_cart is not None and is_in_cart.lower() == 'false':
-            queryset = queryset.exclude(in_carts__user=self.request.user)
-
         is_favorite = self.request.query_params.get('favorite')
-        if is_favorite is not None and is_favorite.lower() == 'true':
-            queryset = queryset.filter(favorites__user=self.request.user)
-        elif is_favorite is not None and is_favorite.lower() == 'false':
-            queryset = queryset.filter(favorites__user=self.request.user)
+        if is_favorite is not None:
+            is_favorite = is_favorite.lower() == 'true'
+            queryset = queryset.filter(favorites__user=self.request.user) if is_favorite else queryset.exclude(
+                favorites__user=self.request.user)
+
+        is_in_cart = self.request.query_params.get('shopping_cart')
+        if is_in_cart is not None:
+            is_in_cart = is_in_cart.lower() == 'true'
+            queryset = queryset.filter(in_carts__user=self.request.user) if is_in_cart else queryset.exclude(
+                in_carts__user=self.request.user)
 
         return queryset
 
-    @action(
-        methods=['post', 'delete'],
-        detail=True,
-        permission_classes=[IsAuthenticated]
-    )
-    def favorite(self, request, pk):
+    @action(detail=True, methods=['post', 'delete'])
+    def favorites(self, request, pk=None):
         """
         Добавление и удаление рецептов из избранного.
         """
         recipe = self.get_object()
         user = request.user
         if request.method == 'POST':
-            Favorite.objects.get_or_create(user=user, recipe=recipe)
+            favorite, created = Favorite.objects.get_or_create(
+                user=user,
+                recipe=recipe
+            )
+            if created:
+                return Response(status=status.HTTP_200_OK)
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
         elif request.method == 'DELETE':
-            Favorite.objects.filter(user=user, recipe=recipe).delete()
-        return Response(status=status.HTTP_200_OK)
+            try:
+                favorite = Favorite.objects.get(
+                    user=user,
+                    recipe=recipe
+                )
+                favorite.delete()
+                return Response(status=status.HTTP_200_OK)
+            except Favorite.DoesNotExist:
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(
         methods=['post', 'delete'],
         detail=True,
         permission_classes=[IsAuthenticated]
     )
-    def shopping_cart(self, request):
-        """
-        Добавление и удаление рецептов из списка покупок.
-        """
+    def shopping_cart(self, request, pk=None):
         recipe = self.get_object()
-        user = request.user
+
         if request.method == 'POST':
-            ShoppingCart.objects.get_or_create(user=user, recipe=recipe)
+            ShoppingCart.objects.get_or_create(user=request.user, recipe=recipe)
+            return Response(status=status.HTTP_200_OK)
+
         elif request.method == 'DELETE':
-            ShoppingCart.objects.filter(user=user, recipe=recipe).delete()
-        return Response(status=status.HTTP_200_OK)
+            ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(methods=['get'], detail=False)
     def download_shopping_cart(self, request):
@@ -275,7 +333,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Загрузка файла со списком покупок.
         """
         user = request.user
-        if not user.carts.exists():
+        if not ShoppingCart.objects.filter(user=user).exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         filename = f'{user.username}_shopping_list.csv'
@@ -286,14 +344,15 @@ class RecipeViewSet(viewsets.ModelViewSet):
         shopping_list.append(['Наименование', 'Количество', 'Единицы измерения'])
 
         ingredients = Ingredient.objects.filter(
-            recipe__in_carts__user=user
+            recipeingredients__recipe__carts__user=user
         ).values(
             'name',
-            measurement=F('recipe__amount__measurement_unit')
-        ).annotate(amount=Sum('recipe__amount__amount'))
+            measurement=F('recipeingredients__amount'),
+            recipe_name=F('recipeingredients__recipe__name')
+        ).annotate(amount=Sum('recipeingredients__amount'))
 
         for ing in ingredients:
-            shopping_list.append([ing['name'], ing['amount'], ing['measurement']])
+            shopping_list.append([ing['name'], ing['amount'], ing['measurement'], ing['recipe_name']])
 
         shopping_list.append(['', '', 'Посчитано в Foodgram'])
 
@@ -307,28 +366,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename={filename}'
 
         return response
-
-    @action(detail=True, methods=['post'])
-    def add_to_favorites(self, request, pk=None):
-        recipe = self.get_object()
-        favorite, created = Favorite.objects.get_or_create(
-            user=request.user,
-            recipe=recipe
-        )
-        if created:
-            return Response(status=status.HTTP_200_OK)
-        else:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def remove_from_favorites(self, request, pk=None):
-        recipe = self.get_object()
-        try:
-            favorite = Favorite.objects.get(
-                user=request.user,
-                recipe=recipe
-            )
-            favorite.delete()
-            return Response(status=status.HTTP_200_OK)
-        except Favorite.DoesNotExist:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
