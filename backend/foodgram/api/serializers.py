@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
-from django.db.models import F
 from django.db.transaction import atomic
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.hashers import make_password
@@ -18,7 +17,6 @@ from users.models import User, Subscription
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор регистрации пользователей."""
     is_subscribed = SerializerMethodField()
-    favorites = serializers.SerializerMethodField()
 
     class Meta:
         model = User
