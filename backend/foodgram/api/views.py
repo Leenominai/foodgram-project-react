@@ -4,12 +4,12 @@ import json
 from datetime import datetime as dt
 
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, DjangoModelPermissions
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.decorators import action
 from rest_framework import status
 from rest_framework.response import Response
+from djoser.views import UserViewSet as DjoserUserViewSet
 from django_filters import rest_framework as filters
 from django.shortcuts import get_object_or_404
 from django.db.models import Sum, F
@@ -30,118 +30,14 @@ from .paginators import PageLimitPagination
 from .filters import RecipeFilter
 
 
-class TagViewSet(ReadOnlyModelViewSet):
-    """
-    Работает с тегами.
-    Позволяет получать информацию о тегах, используемых в рецептах.
-    GET /api/tags/ - Получение списка всех тегов.
-    Пример ответа:
-    [
-        {
-            "id": 1,
-            "name": "Завтрак",
-            "slug": "breakfast"
-        },
-        ...
-    ]
-    """
-    queryset = Tag.objects.all()
-    serializer_class = TagSerializer
-    permission_classes = (IsAdminUser,)
-
-
-class IngredientViewSet(viewsets.ModelViewSet):
-    """
-    Работает с ингредиентами.
-    Позволяет получать информацию о доступных ингредиентах.
-    GET /api/ingredients/ - Получение списка всех ингредиентов.
-    Пример ответа:
-    [
-        {
-            "id": 1,
-            "name": "Мука",
-            "measurement_unit": "г",
-            "slug": "flour"
-        },
-        ...
-    ]
-    """
-    queryset = Ingredient.objects.all()
-    serializer_class = IngredientSerializer
-    permission_classes = (AdminOrReadOnly,)
-    pagination_class = None
-
-    @action(
-        detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
-    )
-    def load_ingredients(self, request):
-        """
-        Загрузка ингредиентов из JSON-файла в базу данных.
-
-        Адрес: /api/ingredients/load_ingredients/
-        Метод: GET
-        Права доступа: Автор, администратор или модератор
-
-        Принцип работы:
-        - Открывает JSON-файл с ингредиентами и считывает данные.
-        - Для каждого ингредиента в данных JSON-файла:
-            - Извлекает имя и единицу измерения.
-            - Создает объект Ingredient с указанными данными.
-            - Сохраняет объект Ingredient в базе данных.
-        - Возвращает успешное сообщение о загрузке ингредиентов.
-
-        Пример ответа:
-        {
-            "message": "Все ингредиенты успешно загружены."
-        }
-        """
-        with open('../../data/ingredients.json', 'r', encoding='utf-8') as json_file:
-            ingredients_data = json.load(json_file)
-
-        for ingredient in ingredients_data:
-            name = ingredient['name']
-            measurement_unit = ingredient['measurement_unit']
-
-            Ingredient.objects.create(name=name, measure_unit=measurement_unit)
-
-        return Response({'message': 'Все ингредиенты успешно загружены.'}, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=['delete'],
-        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
-    )
-    def delete_all(self, request):
-        """
-        Удаление всех ингредиентов из базы данных.
-
-        Адрес: /api/ingredients/delete_all/
-        Метод: DELETE
-        Права доступа: Автор, администратор или модератор
-
-        Принцип работы:
-        - Удаляет все объекты Ingredient из базы данных.
-        - Возвращает успешное сообщение об удалении всех ингредиентов.
-
-        Пример ответа:
-        {
-            "message": "Все ингредиенты успешно удалены."
-        }
-        """
-        Ingredient.objects.all().delete()
-        return Response({'message': 'Все ингредиенты успешно удалены.'})
-
-
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(DjoserUserViewSet):
     """
     Представление для работы с информацией о пользователях.
     """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsAuthorAdminModeratorOrReadOnly,)
-    pagination_class = None
+    permission_classes = (DjangoModelPermissions,)
+    pagination_class = PageLimitPagination
 
     @action(
         methods=['get'],
@@ -230,19 +126,109 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+
+class TagViewSet(ReadOnlyModelViewSet):
+    """
+    Работает с тегами.
+    Позволяет получать информацию о тегах, используемых в рецептах.
+    GET /api/tags/ - Получение списка всех тегов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Завтрак",
+            "slug": "breakfast"
+        },
+        ...
+    ]
+    """
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    permission_classes = (AdminOrReadOnly,)
+
+
+class IngredientViewSet(viewsets.ModelViewSet):
+    """
+    Работает с ингредиентами.
+    Позволяет получать информацию о доступных ингредиентах.
+    GET /api/ingredients/ - Получение списка всех ингредиентов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Мука",
+            "measurement_unit": "г",
+            "slug": "flour"
+        },
+        ...
+    ]
+    """
+    queryset = Ingredient.objects.all()
+    serializer_class = IngredientSerializer
+    permission_classes = (AdminOrReadOnly,)
+    pagination_class = None
+
     @action(
-        methods=['post'],
         detail=False,
-        permission_classes=[AllowAny]
+        methods=['get'],
+        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
     )
-    def login(self, request):
+    def load_ingredients(self, request):
         """
-        Получение JWT-токена для аутентификации пользователя.
+        Загрузка ингредиентов из JSON-файла в базу данных.
+
+        Адрес: /api/ingredients/load_ingredients/
+        Метод: GET
+        Права доступа: Автор, администратор или модератор
+
+        Принцип работы:
+        - Открывает JSON-файл с ингредиентами и считывает данные.
+        - Для каждого ингредиента в данных JSON-файла:
+            - Извлекает имя и единицу измерения.
+            - Создает объект Ingredient с указанными данными.
+            - Сохраняет объект Ingredient в базе данных.
+        - Возвращает успешное сообщение о загрузке ингредиентов.
+
+        Пример ответа:
+        {
+            "message": "Все ингредиенты успешно загружены."
+        }
         """
-        serializer = TokenObtainPairSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        token_data = serializer.validated_data
-        return Response(token_data)
+        with open('../../data/ingredients.json', 'r', encoding='utf-8') as json_file:
+            ingredients_data = json.load(json_file)
+
+        for ingredient in ingredients_data:
+            name = ingredient['name']
+            measurement_unit = ingredient['measurement_unit']
+
+            Ingredient.objects.create(name=name, measure_unit=measurement_unit)
+
+        return Response({'message': 'Все ингредиенты успешно загружены.'}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=['delete'],
+        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
+    )
+    def delete_all(self, request):
+        """
+        Удаление всех ингредиентов из базы данных.
+
+        Адрес: /api/ingredients/delete_all/
+        Метод: DELETE
+        Права доступа: Автор, администратор или модератор
+
+        Принцип работы:
+        - Удаляет все объекты Ingredient из базы данных.
+        - Возвращает успешное сообщение об удалении всех ингредиентов.
+
+        Пример ответа:
+        {
+            "message": "Все ингредиенты успешно удалены."
+        }
+        """
+        Ingredient.objects.all().delete()
+        return Response({'message': 'Все ингредиенты успешно удалены.'})
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -329,9 +315,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return queryset
 
     @action(detail=True, methods=['post', 'delete'])
-    def favorites(self, request, pk=None):
+    def favorite(self, request, pk=None):
         """
         Добавление и удаление рецептов из избранного.
+
+        Адрес: /api/recipes/{pk}/favorite/
+        Методы: POST, DELETE
+        Права доступа: Авторизованный пользователь
+
+        Принцип работы:
+        - При отправке POST-запроса добавляет рецепт в список избранных пользователя.
+        - При отправке DELETE-запроса удаляет рецепт из списка избранных пользователя.
+
+        Пример ответа при успешном добавлении:
+        HTTP 200 OK
+
+        Пример ответа при попытке повторного добавления:
+        HTTP 400 BAD REQUEST
+
+        Пример ответа при успешном удалении:
+        HTTP 200 OK
+
+        Пример ответа при отсутствии рецепта в списке избранных:
+        HTTP 204 NO CONTENT
         """
         recipe = self.get_object()
         user = request.user
@@ -346,11 +352,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 return Response(status=status.HTTP_400_BAD_REQUEST)
         elif request.method == 'DELETE':
             try:
-                favorite = Favorite.objects.get(
-                    user=user,
-                    recipe=recipe
-                )
+                user = request.user
+                favorite = Favorite.objects.get(user=user, recipe=recipe)
                 favorite.delete()
+
                 return Response(status=status.HTTP_200_OK)
             except Favorite.DoesNotExist:
                 return Response(status=status.HTTP_204_NO_CONTENT)
@@ -363,6 +368,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk=None):
+        """
+        Добавление и удаление рецептов в корзину покупок.
+
+        Адрес: /api/recipes/{pk}/shopping_cart/
+        Методы: POST, DELETE
+        Права доступа: Авторизованный пользователь
+
+        Принцип работы:
+        - При отправке POST-запроса добавляет рецепт в корзину покупок пользователя.
+        - При отправке DELETE-запроса удаляет рецепт из корзины покупок пользователя.
+
+        Пример ответа при успешном добавлении:
+        HTTP 200 OK
+
+        Пример ответа при успешном удалении:
+        HTTP 204 NO CONTENT
+        """
         recipe = self.get_object()
 
         if request.method == 'POST':
@@ -379,6 +401,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         """
         Загрузка файла со списком покупок.
+
+        Адрес: /api/download_shopping_cart/
+        Метод: GET
+        Права доступа: Аутентифицированный пользователь
+
+        Принцип работы:
+        - Проверяет наличие списка покупок для текущего пользователя.
+        - Создает CSV-файл с данными о покупках.
+        - Возвращает файл для скачивания.
+
+        Пример ответа:
+        - Если список покупок пуст:
+          HTTP 400 Bad Request
+        - Если список покупок не пуст:
+          HTTP 200 OK
+          Файл CSV с данными о покупках для скачивания
+
+        Примечание:
+        - Файл CSV может отображаться иероглифами, если открыть его в Excel.
+          Это связано с кодировкой, но данные в файле сохраняются корректно.
         """
         user = request.user
         if not ShoppingCart.objects.filter(user=user).exists():
@@ -403,14 +445,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
         for ing in ingredients:
             shopping_list.append([ing['name'], ing['amount'], ing['measurement']])
 
-        shopping_list.append(['', '', 'Посчитано в Foodgram'])
+        shopping_list.append(['', '', 'Сделано в Foodgram'])
 
-        # Создаем объект в памяти для записи CSV
         csv_buffer = io.StringIO()
         csv_writer = csv.writer(csv_buffer, delimiter=',')
         csv_writer.writerows(shopping_list)
 
-        # Создаем HTTPResponse и добавляем заголовки
         response = HttpResponse(csv_buffer.getvalue(), content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename={filename}'
 

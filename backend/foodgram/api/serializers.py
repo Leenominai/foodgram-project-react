@@ -132,9 +132,7 @@ class RecipeSerializer(ModelSerializer):
         many=True,
         read_only=True
     )
-    author = UserSerializer(
-        read_only=True
-    )
+    author = UserSerializer()
     ingredients = SerializerMethodField()
     is_favorited = SerializerMethodField()
     is_in_shopping_cart = SerializerMethodField()
@@ -162,12 +160,14 @@ class RecipeSerializer(ModelSerializer):
     def get_ingredients(self, recipe):
         """Список ингридиентов для рецепта."""
         recipe_ingredients = RecipeIngredient.objects.filter(recipe=recipe)
-        ingredients = recipe_ingredients.values(
-            'ingredient__id',
-            'ingredient__name',
-            'ingredient__measure_unit',
-            'amount'
-        )
+        ingredients = []
+        for recipe_ingredient in recipe_ingredients:
+            ingredient = {
+                'name': recipe_ingredient.ingredient.name,
+                'amount': recipe_ingredient.amount,
+                'measure_unit': recipe_ingredient.ingredient.measure_unit,
+            }
+            ingredients.append(ingredient)
         return ingredients
 
     def get_is_favorited(self, recipe: Recipe) -> bool:
@@ -232,6 +232,9 @@ class RecipeSerializer(ModelSerializer):
         if ingredients:
             recipe.ingredients.clear()
             ingredients_in_recipe(recipe, ingredients)
+
+        user = self.context['request'].user
+        user.favorites_received.filter(recipe=recipe).delete()
 
         recipe.save()
         return recipe
