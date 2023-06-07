@@ -1,9 +1,10 @@
 import io
 import csv
+import json
 from datetime import datetime as dt
 
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.decorators import action
@@ -46,7 +47,7 @@ class TagViewSet(ReadOnlyModelViewSet):
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (AdminOrReadOnly,)
+    permission_classes = (IsAdminUser,)
 
 
 class IngredientViewSet(viewsets.ModelViewSet):
@@ -69,6 +70,68 @@ class IngredientViewSet(viewsets.ModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (AdminOrReadOnly,)
     pagination_class = None
+
+    @action(
+        detail=False,
+        methods=['get'],
+        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
+    )
+    def load_ingredients(self, request):
+        """
+        Загрузка ингредиентов из JSON-файла в базу данных.
+
+        Адрес: /api/ingredients/load_ingredients/
+        Метод: GET
+        Права доступа: Автор, администратор или модератор
+
+        Принцип работы:
+        - Открывает JSON-файл с ингредиентами и считывает данные.
+        - Для каждого ингредиента в данных JSON-файла:
+            - Извлекает имя и единицу измерения.
+            - Создает объект Ingredient с указанными данными.
+            - Сохраняет объект Ingredient в базе данных.
+        - Возвращает успешное сообщение о загрузке ингредиентов.
+
+        Пример ответа:
+        {
+            "message": "Все ингредиенты успешно загружены."
+        }
+        """
+        with open('../../data/ingredients.json', 'r', encoding='utf-8') as json_file:
+            ingredients_data = json.load(json_file)
+
+        for ingredient in ingredients_data:
+            name = ingredient['name']
+            measurement_unit = ingredient['measurement_unit']
+
+            Ingredient.objects.create(name=name, measure_unit=measurement_unit)
+
+        return Response({'message': 'Все ингредиенты успешно загружены.'}, status=status.HTTP_200_OK)
+
+    @action(
+        detail=False,
+        methods=['delete'],
+        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
+    )
+    def delete_all(self, request):
+        """
+        Удаление всех ингредиентов из базы данных.
+
+        Адрес: /api/ingredients/delete_all/
+        Метод: DELETE
+        Права доступа: Автор, администратор или модератор
+
+        Принцип работы:
+        - Удаляет все объекты Ingredient из базы данных.
+        - Возвращает успешное сообщение об удалении всех ингредиентов.
+
+        Пример ответа:
+        {
+            "message": "Все ингредиенты успешно удалены."
+        }
+        """
+        Ingredient.objects.all().delete()
+        return Response({'message': 'Все ингредиенты успешно удалены.'})
 
 
 class UserViewSet(viewsets.ModelViewSet):

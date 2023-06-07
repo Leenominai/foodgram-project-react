@@ -36,7 +36,7 @@ class IngredientAdmin(admin.ModelAdmin):
         'name',
     )
     list_filter = (
-        'name',
+        'measure_unit',
     )
     empty_value_display = AnyEnums.EMPTY_SEARCH.value
 
@@ -68,7 +68,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (RecipeIngredientInline,)
 
     def favorites_count(self, obj):
-        return obj.favorites.count()
+        return obj.favorites_added.count()
 
 
 @admin.register(RecipeIngredient)

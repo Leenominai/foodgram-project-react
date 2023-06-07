@@ -15,12 +15,12 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# load_dotenv(os.path.join(BASE_DIR.parent.parent, 'infra/.env'), verbose=True)
+load_dotenv(os.path.join(BASE_DIR.parent.parent, 'infra/.env'), verbose=True)
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = '%3n@)0nz+i1dq4u)(kj@v4#068v2v77z55-z6vdp2t=k1&cv(5'
@@ -80,11 +80,24 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
-
+"""
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+    }
+}
+
+"""
+DATABASES = {
+    'default': {
+        'ENGINE': os.getenv('DB_ENGINE', default="django.db.backends.postgresql"),
+        'NAME': os.getenv('DB_NAME', default="postgres"),
+        'USER': os.getenv('POSTGRES_USER', default="postgres"),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', default="postgres"),
+        'HOST': os.getenv('DB_HOST', default="localhost"),
+        'PORT': os.getenv('DB_PORT', default="5432"),
+        'OPTIONS': {'options': '-c timezone=UTC'},
     }
 }
 
@@ -121,7 +134,8 @@ REST_FRAMEWORK = {
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
-    'AUTH_HEADER_TYPES': ('Bearer',)
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'LOGIN_FIELD': 'email',
 }
 
 AUTH_USER_MODEL = 'users.User'
@@ -148,5 +162,3 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 DATE_TIME_FORMAT = '%d/%m/%Y %H:%M'
-
-USE_TZ = True
