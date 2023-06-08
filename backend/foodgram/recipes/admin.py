@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 
-from .variables import AnyEnums
+from .utils import AnyEnums
 from .models import (
     Favorite,
     Ingredient,

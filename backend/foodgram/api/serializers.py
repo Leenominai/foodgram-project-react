@@ -3,7 +3,7 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
-from .variables import Base64ImageField, create_ingredients
+from .utils import Base64ImageField, create_ingredients
 from recipes.models import (
     Favorite,
     Ingredient,

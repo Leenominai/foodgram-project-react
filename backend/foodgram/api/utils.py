@@ -48,7 +48,7 @@ def create_ingredients(ingredients, recipe):
     RecipeIngredient.objects.bulk_create(ingredient_list)
 
 
-def create_model_instance(request, instance, serializer_name):
+def post_model_instance(request, instance, serializer_name):
     """Вспомогательная функция для добавления
     рецепта в избранное либо список покупок.
     """

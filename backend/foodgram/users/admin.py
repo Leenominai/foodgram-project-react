@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import User, Subscription
-from .variables import AnyEnums
+from .utils import AnyEnums
 
 
 @admin.register(User)

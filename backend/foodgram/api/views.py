@@ -20,7 +20,7 @@ from .serializers import (
     UserSubscribeRepresentSerializer,
     UserSubscribeSerializer
 )
-from .variables import create_model_instance, delete_model_instance
+from .utils import post_model_instance, delete_model_instance
 from recipes.models import (
     Tag,
     Ingredient,
@@ -49,21 +49,11 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
         """
         Создание/удаление подписки на пользователя.
 
-        Методы: POST, DELETE
         Права доступа: Авторизованный пользователь
 
         Принцип работы:
         - При отправке POST-запроса создает подписку на пользователя.
         - При отправке DELETE-запроса удаляет подписку на пользователя.
-
-        Пример ответа при успешном создании:
-        HTTP 201 CREATED
-
-        Пример ответа при успешном удалении:
-        HTTP 204 NO CONTENT
-
-        Пример ответа при попытке удалить несуществующую подписку:
-        HTTP 400 BAD REQUEST
         """
         author = get_object_or_404(User, id=pk)
         if request.method == 'POST':
@@ -75,12 +65,7 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
-            if not Subscription.objects.filter(user=request.user, author=author).exists():
-                return Response(
-                    {'errors': 'Вы не подписаны на этого пользователя'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            Subscription.objects.get(user=request.user.id, author=pk).delete()
+            Subscription.objects.filter(user=request.user, author=author).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -99,16 +84,9 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Работает с тегами.
     Позволяет получать информацию о тегах, используемых в рецептах.
-    GET /api/tags/ - Получение списка всех тегов.
-    Пример ответа:
-    [
-        {
-            "id": 1,
-            "name": "Завтрак",
-            "slug": "breakfast"
-        },
-        ...
-    ]
+
+    Адрес: /api/tags/
+    Права доступа: Все пользователи.
     """
     queryset = Tag.objects.all()
     serializer_class = TagSerialiser
@@ -120,17 +98,9 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Работает с ингредиентами.
     Позволяет получать информацию о доступных ингредиентах.
-    GET /api/ingredients/ - Получение списка всех ингредиентов.
-    Пример ответа:
-    [
-        {
-            "id": 1,
-            "name": "Мука",
-            "measurement_unit": "г",
-            "slug": "flour"
-        },
-        ...
-    ]
+
+    Адрес: /api/ingredients/
+    Права доступа: Все пользователи.
     """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
@@ -138,68 +108,6 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = (DjangoFilterBackend, )
     filterset_class = IngredientFilter
-
-    @action(
-        detail=False,
-        methods=['get'],
-        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
-    )
-    def load_ingredients(self, request):
-        """
-        Загрузка ингредиентов из JSON-файла в базу данных.
-
-        Адрес: /api/ingredients/load_ingredients/
-        Метод: GET
-        Права доступа: Автор, администратор или модератор
-
-        Принцип работы:
-        - Открывает JSON-файл с ингредиентами и считывает данные.
-        - Для каждого ингредиента в данных JSON-файла:
-            - Извлекает имя и единицу измерения.
-            - Создает объект Ingredient с указанными данными.
-            - Сохраняет объект Ingredient в базе данных.
-        - Возвращает успешное сообщение о загрузке ингредиентов.
-
-        Пример ответа:
-        {
-            "message": "Все ингредиенты успешно загружены."
-        }
-        """
-        with open('../../static/data/ingredients.json', 'r', encoding='utf-8') as json_file:
-            ingredients_data = json.load(json_file)
-
-        for ingredient in ingredients_data:
-            name = ingredient['name']
-            measurement_unit = ingredient['measurement_unit']
-
-            Ingredient.objects.create(name=name, measure_unit=measurement_unit)
-
-        return Response({'message': 'Все ингредиенты успешно загружены.'}, status=status.HTTP_200_OK)
-
-    @action(
-        detail=False,
-        methods=['delete'],
-        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
-    )
-    def delete_all(self, request):
-        """
-        Удаление всех ингредиентов из базы данных.
-
-        Адрес: /api/ingredients/delete_all/
-        Метод: DELETE
-        Права доступа: Автор, администратор или модератор
-
-        Принцип работы:
-        - Удаляет все объекты Ingredient из базы данных.
-        - Возвращает успешное сообщение об удалении всех ингредиентов.
-
-        Пример ответа:
-        {
-            "message": "Все ингредиенты успешно удалены."
-        }
-        """
-        Ingredient.objects.all().delete()
-        return Response({'message': 'Все ингредиенты успешно удалены.'})
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -246,6 +154,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     будет возвращен статусный код 200 OK в случае успешного выполнения запроса или
     статусный код 400 BAD REQUEST, если произошла ошибка или указанный рецепт уже
     находится в избранном или списке покупок.
+
+    http_method_names определяет список HTTP-методов,
+    которые представление (ViewSet) будет поддерживать.
     """
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorAdminModeratorOrReadOnly, )
@@ -268,49 +179,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Добавление и удаление рецептов из избранного.
 
         Адрес: /api/recipes/{pk}/favorite/
-        Методы: POST, DELETE
         Права доступа: Авторизованный пользователь
 
         Принцип работы:
         - При отправке POST-запроса добавляет рецепт в список избранных пользователя.
         - При отправке DELETE-запроса удаляет рецепт из списка избранных пользователя.
-
-        Пример ответа при успешном добавлении:
-        HTTP 200 OK
-
-        Пример ответа при попытке повторного добавления:
-        HTTP 400 BAD REQUEST
-
-        Пример ответа при успешном удалении:
-        HTTP 200 OK
-
-        Пример ответа при отсутствии рецепта в списке избранных:
-        HTTP 204 NO CONTENT
         """
         recipe = get_object_or_404(Recipe, id=pk)
         if request.method == 'POST':
-            response = create_model_instance(
+            return post_model_instance(
                 request,
                 recipe,
                 FavoriteSerializer
             )
-            if response.status_code == status.HTTP_400_BAD_REQUEST:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return response
 
         if request.method == 'DELETE':
             error_message = 'Данный рецепт отсутствует в вашем избранного.'
-            response = delete_model_instance(
+            return delete_model_instance(
                 request,
                 Favorite,
                 recipe,
                 error_message
             )
-            if response.status_code == status.HTTP_400_BAD_REQUEST:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return response
 
     @action(
         detail=True,
@@ -322,45 +212,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Добавление и удаление рецептов в корзину покупок.
 
         Адрес: /api/recipes/{pk}/shopping_cart/
-        Методы: POST, DELETE
         Права доступа: Авторизованный пользователь
 
         Принцип работы:
         - При отправке POST-запроса добавляет рецепт в корзину покупок пользователя.
         - При отправке DELETE-запроса удаляет рецепт из корзины покупок пользователя.
-
-        Пример ответа при успешном добавлении:
-        HTTP 200 OK
-
-        Пример ответа при успешном удалении:
-        HTTP 204 NO CONTENT
         """
         recipe = get_object_or_404(Recipe, id=pk)
 
         if request.method == 'POST':
-            response = create_model_instance(
+            return post_model_instance(
                 request,
                 recipe,
                 ShoppingCartSerializer
             )
-            if response.status_code == status.HTTP_400_BAD_REQUEST:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return response
-
         if request.method == 'DELETE':
             error_message = 'У вас нет этого рецепта в списке покупок'
-            response = delete_model_instance(
+            return delete_model_instance(
                 request,
                 ShoppingCart,
                 recipe,
                 error_message
             )
-            if response.status_code == status.HTTP_400_BAD_REQUEST:
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return response
-
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(
@@ -374,7 +247,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Ингредиенты не дублируются, их кол-во суммируется.
 
         Адрес: /api/download_shopping_cart/
-        Метод: GET
         Права доступа: Аутентифицированный пользователь
 
         Принцип работы:
@@ -383,10 +255,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         - Возвращает файл для скачивания.
 
         Пример ответа:
-        - Если список покупок пуст:
-          HTTP 400 Bad Request
         - Если список покупок не пуст:
-          HTTP 200 OK
           Файл TXT с данными о покупках для скачивания.
         """
         ingredients = RecipeIngredient.objects.filter(
