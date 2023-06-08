@@ -46,8 +46,8 @@ class User(AbstractUser):
         max_length=150,
         blank=False,
         null=False,
-        help_text = 'Введите свою фамилию',
-        validators = [validate_names, ],
+        help_text='Введите свою фамилию',
+        validators=[validate_names, ],
     )
     password = models.CharField(
         'Пароль',
