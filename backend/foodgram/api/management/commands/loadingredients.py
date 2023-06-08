@@ -1,6 +1,7 @@
+import json
+
 from django.core.management.base import BaseCommand
 from recipes.models import Ingredient
-import json
 
 
 class Command(BaseCommand):
@@ -23,7 +24,11 @@ class Command(BaseCommand):
     help = 'Загружает ингредиенты из JSON-файла в базу данных'
 
     def add_arguments(self, parser):
-        parser.add_argument('file_path', type=str, help='Путь к JSON-файлу с ингредиентами')
+        parser.add_argument(
+            'file_path',
+            type=str,
+            help='Путь к JSON-файлу с ингредиентами'
+        )
 
     def handle(self, *args, **options):
         file_path = options['file_path']
@@ -34,10 +39,15 @@ class Command(BaseCommand):
         Ingredient.objects.all().delete()
 
         ingredients_to_create = [
-            Ingredient(name=ingredient['name'], measure_unit=ingredient['measurement_unit'])
+            Ingredient(
+                name=ingredient['name'],
+                measure_unit=ingredient['measurement_unit']
+            )
             for ingredient in ingredients_data
         ]
 
         Ingredient.objects.bulk_create(ingredients_to_create)
 
-        self.stdout.write(self.style.SUCCESS('Ингредиенты успешно загружены в базу данных.'))
+        self.stdout.write(self.style.SUCCESS(
+            'Ингредиенты успешно загружены в базу данных.')
+        )

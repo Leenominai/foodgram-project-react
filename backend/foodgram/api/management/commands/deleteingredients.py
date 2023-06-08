@@ -14,4 +14,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         Ingredient.objects.all().delete()
-        self.stdout.write(self.style.SUCCESS('Все ингредиенты успешно удалены из базы данных.'))
+        self.stdout.write(self.style.SUCCESS(
+            'Все ингредиенты успешно удалены из базы данных.')
+        )

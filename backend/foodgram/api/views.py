@@ -1,35 +1,22 @@
-import json
-
 from django.db.models import Sum
-from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import HttpResponse, get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from users.models import Subscription, User
 
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import IsAuthorAdminModeratorOrReadOnly
-from .serializers import (
-    FavoriteSerializer,
-    IngredientSerializer,
-    RecipeCreateSerializer,
-    RecipeGetSerializer,
-    ShoppingCartSerializer,
-    TagSerialiser,
-    UserSubscribeRepresentSerializer,
-    UserSubscribeSerializer
-)
-from .utils import post_model_instance, delete_model_instance
-from recipes.models import (
-    Tag,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    Favorite,
-    ShoppingCart
-)
-from users.models import User, Subscription
+from .serializers import (FavoriteSerializer, IngredientSerializer,
+                          RecipeCreateSerializer, RecipeGetSerializer,
+                          ShoppingCartSerializer, TagSerialiser,
+                          UserSubscribeRepresentSerializer,
+                          UserSubscribeSerializer)
+from .utils import delete_model_instance, post_model_instance
 
 
 class UserSubscribeViewSet(viewsets.GenericViewSet):
@@ -126,7 +113,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
       `/api/recipes/{pk}/favorites/` позволяют добавлять и удалять рецепты из
       избранного для конкретного рецепта с идентификатором `{pk}`.
     - `shopping_cart`: POST и DELETE запросы по адресу
-      `/api/recipes/{pk}/shopping_cart/` позволяют добавлять и удалять рецепты
+      `/api/recipes/{pk}/shopping_cart/`
+      позволяют добавлять и удалять рецепты
       из списка покупок для конкретного рецепта с идентификатором `{pk}`.
     - `download_shopping_cart`: GET запрос по адресу
       `/api/recipes/download_shopping_cart/` позволяет скачать файл CSV со
@@ -138,24 +126,29 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     Параметры фильтрации для списка рецептов:
 
-    - `tags`: список тегов рецептов, по которым будет производиться фильтрация.
+    - `tags`: список тегов рецептов,
+    по которым будет производиться фильтрация.
     - `author`: фильтрация по имени автора рецепта.
     - `shopping_cart`: значение `true` или `false` для фильтрации рецептов в
       списке покупок.
-    - `favorite`: значение `true` или `false` для фильтрации избранных рецептов
-      для текущего пользователя.
+    - `favorite`: значение `true` или `false`
+    для фильтрации избранных рецептов для текущего пользователя.
 
-    При выполнении фильтрации по `tags` и `author` будет возвращен список рецептов,
-    соответствующих фильтру. При выполнении фильтрации по `shopping_cart` и
-    `favorite` будет возвращен список рецептов, принадлежащих текущему пользователю
+    При выполнении фильтрации по `tags` и `author`
+    будет возвращен список рецептов, соответствующих фильтру.
+    При выполнении фильтрации по `shopping_cart` и
+    `favorite` будет возвращен список рецептов,
+    принадлежащих текущему пользователю
     и находящихся в списке покупок или избранном соответственно.
 
-    При выполнении запроса `download_shopping_cart` будет сформирован файл CSV со
+    При выполнении запроса `download_shopping_cart`
+    будет сформирован файл CSV со
     списком покупок для текущего пользователя.
 
-    При выполнении запросов на создание и удаление избранного или списка покупок
-    будет возвращен статусный код 200 OK в случае успешного выполнения запроса или
-    статусный код 400 BAD REQUEST, если произошла ошибка или указанный рецепт уже
+    При выполнении запросов на создание и удаление избранного или
+    списка покупок будет возвращен статусный код 200 OK
+    в случае успешного выполнения запроса или статусный код 400 BAD REQUEST,
+    если произошла ошибка или указанный рецепт уже
     находится в избранном или списке покупок.
 
     http_method_names определяет список HTTP-методов,
