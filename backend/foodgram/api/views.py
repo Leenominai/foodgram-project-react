@@ -1,7 +1,6 @@
 import json
 
-from django.db.models import Sum, F
-from django.db.models.functions import Lower
+from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import HttpResponse, get_object_or_404
 from rest_framework import mixins, status, viewsets
@@ -34,29 +33,52 @@ from recipes.models import (
 from users.models import User, Subscription
 
 
-class UserSubscribeView(APIView):
+class UserSubscribeViewSet(viewsets.GenericViewSet):
     """Создание/удаление подписки на пользователя."""
-    def post(self, request, user_id):
-        author = get_object_or_404(User, id=user_id)
-        serializer = UserSubscribeSerializer(
-            data={'user': request.user.id, 'author': author.id},
-            context={'request': request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    def get_queryset(self):
+        return User.objects.filter(following__user=self.request.user)
 
-    def delete(self, request, user_id):
-        author = get_object_or_404(User, id=user_id)
-        if not Subscription.objects.filter(user=request.user,
-                                           author=author).exists():
-            return Response(
-                {'errors': 'Вы не подписаны на этого пользователя'},
-                status=status.HTTP_400_BAD_REQUEST
+    @action(
+        detail=True,
+        methods=['post', 'delete']
+    )
+    def subscribe(self, request, pk=None):
+        """
+        Создание/удаление подписки на пользователя.
+
+        Методы: POST, DELETE
+        Права доступа: Авторизованный пользователь
+
+        Принцип работы:
+        - При отправке POST-запроса создает подписку на пользователя.
+        - При отправке DELETE-запроса удаляет подписку на пользователя.
+
+        Пример ответа при успешном создании:
+        HTTP 201 CREATED
+
+        Пример ответа при успешном удалении:
+        HTTP 204 NO CONTENT
+
+        Пример ответа при попытке удалить несуществующую подписку:
+        HTTP 400 BAD REQUEST
+        """
+        author = get_object_or_404(User, id=pk)
+        if request.method == 'POST':
+            serializer = UserSubscribeSerializer(
+                data={'user': request.user.id, 'author': author.id},
+                context={'request': request}
             )
-        Subscription.objects.get(user=request.user.id,
-                                 author=user_id).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        elif request.method == 'DELETE':
+            if not Subscription.objects.filter(user=request.user, author=author).exists():
+                return Response(
+                    {'errors': 'Вы не подписаны на этого пользователя'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            Subscription.objects.get(user=request.user.id, author=pk).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class UserSubscriptionsViewSet(mixins.ListModelMixin,
