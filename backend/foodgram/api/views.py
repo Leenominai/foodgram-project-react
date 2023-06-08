@@ -57,6 +57,7 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
                 author=author
             ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response()
 
 
 class UserSubscriptionsViewSet(mixins.ListModelMixin,
@@ -192,12 +193,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         if request.method == 'DELETE':
+            error_message = 'Данный рецепт отсутствует в вашем избранного.'
             return delete_model_instance(
                 request,
                 Favorite,
                 recipe,
                 error_message
             )
+        return Response()
 
     @action(
         detail=True,
