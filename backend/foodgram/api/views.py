@@ -51,7 +51,7 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
+        if request.method == 'DELETE':
             Subscription.objects.filter(
                 user=request.user,
                 author=author
@@ -192,7 +192,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
 
         if request.method == 'DELETE':
-            error_message = 'Данный рецепт отсутствует в вашем избранного.'
             return delete_model_instance(
                 request,
                 Favorite,
