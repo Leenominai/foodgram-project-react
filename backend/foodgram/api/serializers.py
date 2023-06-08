@@ -3,6 +3,7 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
 
+from .paginators import RecipePagination
 from .utils import Base64ImageField, create_ingredients
 from recipes.models import (
     Favorite,
@@ -95,12 +96,11 @@ class UserSubscribeRepresentSerializer(UserGetSerializer):
         """
         request = self.context.get('request')
         recipes_limit = None
-        if request:
-            recipes_limit = request.query_params.get('recipes_limit')
+        paginator = RecipePagination()
+        paginator.default_limit = recipes_limit if recipes_limit else self.Meta.model.objects.count()
         recipes = obj.recipes.all()
-        if recipes_limit:
-            recipes = obj.recipes.all()[:int(recipes_limit)]
-        return RecipeSmallSerializer(recipes, many=True,
+        paginated_recipes = paginator.paginate_queryset(recipes, request)
+        return RecipeSmallSerializer(paginated_recipes, many=True,
                                      context={'request': request}).data
 
     def get_recipes_count(self, obj):
@@ -120,7 +120,10 @@ class UserSubscribeSerializer(serializers.ModelSerializer):
         validators = [
             UniqueTogetherValidator(
                 queryset=Subscription.objects.all(),
-                fields=('user', 'author'),
+                fields=(
+                    'user',
+                    'author'
+                ),
                 message='Вы уже подписаны на этого пользователя'
             )
         ]
@@ -178,7 +181,12 @@ class IngredientGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RecipeIngredient
-        fields = ('id', 'name', 'measure_unit', 'amount')
+        fields = (
+            'id',
+            'name',
+            'measure_unit',
+            'amount'
+        )
 
 
 class IngredientPostSerializer(serializers.ModelSerializer):
@@ -191,7 +199,10 @@ class IngredientPostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RecipeIngredient
-        fields = ('id', 'amount')
+        fields = (
+            'id',
+            'amount'
+        )
 
 
 class RecipeGetSerializer(serializers.ModelSerializer):
@@ -329,7 +340,10 @@ class FavoriteSerializer(serializers.ModelSerializer):
         validators = [
             UniqueTogetherValidator(
                 queryset=Favorite.objects.all(),
-                fields=('user', 'recipe'),
+                fields=(
+                    'user',
+                    'recipe'
+                ),
                 message='Рецепт уже добавлен в избранное'
             )
         ]
@@ -352,7 +366,10 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         validators = [
             UniqueTogetherValidator(
                 queryset=ShoppingCart.objects.all(),
-                fields=('user', 'recipe'),
+                fields=(
+                    'user',
+                    'recipe'
+                ),
                 message='Рецепт уже добавлен в список покупок'
             )
         ]

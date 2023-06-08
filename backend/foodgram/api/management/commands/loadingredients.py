@@ -14,18 +14,30 @@ class Command(BaseCommand):
         - Создает объект Ingredient с указанными данными.
         - Сохраняет объект Ingredient в базе данных.
     - Возвращает успешное сообщение о загрузке ингредиентов.
+
+    Загрузка происходит через команду Django
+    с указанием пути к файлу в аргументе file_path. Например:
+    python manage.py load_ingredients ../../static/data/ingredients.json
+
     """
     help = 'Загружает ингредиенты из JSON-файла в базу данных'
 
+    def add_arguments(self, parser):
+        parser.add_argument('file_path', type=str, help='Путь к JSON-файлу с ингредиентами')
+
     def handle(self, *args, **options):
-        with open('../../static/data/ingredients.json', 'r', encoding='utf-8') as json_file:
+        file_path = options['file_path']
+
+        with open(file_path, 'r', encoding='utf-8') as json_file:
             ingredients_data = json.load(json_file)
 
         Ingredient.objects.all().delete()
 
-        for ingredient in ingredients_data:
-            name = ingredient['name']
-            measurement_unit = ingredient['measurement_unit']
-            Ingredient.objects.create(name=name, measure_unit=measurement_unit)
+        ingredients_to_create = [
+            Ingredient(name=ingredient['name'], measure_unit=ingredient['measurement_unit'])
+            for ingredient in ingredients_data
+        ]
+
+        Ingredient.objects.bulk_create(ingredients_to_create)
 
         self.stdout.write(self.style.SUCCESS('Ингредиенты успешно загружены в базу данных.'))
