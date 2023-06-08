@@ -1,11 +1,26 @@
+from django.conf import settings
 from django.contrib import admin
 
-from .models import Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
 from .variables import AnyEnums
+from .models import (
+    Favorite,
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    ShoppingCart,
+    Tag
+)
 
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Tag.
+
+    Отображает список тегов с указанными полями.
+    Предоставляет поиск по полям, а также фильтрацию списка.
+    Задает значение отображения пустых полей как '-пусто-'.
+    """
     list_display = (
         'pk',
         'name',
@@ -22,11 +37,18 @@ class TagAdmin(admin.ModelAdmin):
         'color',
         'slug',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE.value
 
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Ingredient.
+
+    Отображает список ингредиентов с указанными полями.
+    Предоставляет поиск по полям, а также фильтрацию списка.
+    Задает значение отображения пустых полей как '-пусто-'.
+    """
     list_display = (
         'pk',
         'name',
@@ -36,23 +58,31 @@ class IngredientAdmin(admin.ModelAdmin):
         'name',
     )
     list_filter = (
-        'measure_unit',
+        'name',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE.value
 
 
-class RecipeIngredientInline(admin.TabularInline):
+class ShortRecipeIngredient(admin.TabularInline):
     model = RecipeIngredient
 
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Recipe.
+
+    Отображает список рецептов с указанными полями.
+    Предоставляет поиск по полям, а также фильтрацию списка.
+    Задает значение отображения пустых полей как 'empty'.
+    Встроенный класс ShortRecipeIngredient отображает
+    связанные ингредиенты в рецепте.
+    """
     list_display = (
         'pk',
         'name',
-        'pub_date',
         'author',
-        'favorites_count',
+        'favorites_amount',
     )
     search_fields = (
         'name',
@@ -64,26 +94,41 @@ class RecipeAdmin(admin.ModelAdmin):
         'author',
         'tags',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
-    inlines = (RecipeIngredientInline,)
+    empty_value_display = AnyEnums.EMPTY_VALUE.value
+    inlines = [
+        ShortRecipeIngredient,
+    ]
 
-    def favorites_count(self, obj):
-        return obj.favorites_added.count()
+    def favorites_amount(self, obj):
+        return obj.favorites.count()
 
 
 @admin.register(RecipeIngredient)
 class RecipeIngredientAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели RecipeIngredient.
+
+    Отображает список связей рецепта и ингредиента с указанными полями.
+    Задает значение отображения пустых полей как 'empty'.
+    """
     list_display = (
         'pk',
         'recipe',
         'ingredient',
         'amount',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE.value
 
 
 @admin.register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели Favorite.
+
+    Отображает список избранных рецептов с указанными полями.
+    Предоставляет поиск по полям.
+    Задает значение отображения пустых полей как 'empty'.
+    """
     list_display = (
         'pk',
         'user',
@@ -93,11 +138,18 @@ class FavoriteAdmin(admin.ModelAdmin):
         'user',
         'recipe',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE
 
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели ShoppingCart.
+
+    Отображает список рецептов в корзине с указанными полями.
+    Предоставляет поиск по полям.
+    Задает значение отображения пустых полей как 'empty'.
+    """
     list_display = (
         'pk',
         'user',
@@ -107,4 +159,4 @@ class ShoppingCartAdmin(admin.ModelAdmin):
         'user',
         'recipe',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE

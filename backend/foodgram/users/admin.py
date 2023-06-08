@@ -6,6 +6,12 @@ from .variables import AnyEnums
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    """Административная панель для модели User.
+
+    Отображает список пользователей с указанными полями.
+    Предоставляет поиск по полям, а также фильтрацию списка.
+    Задает значение отображения пустых полей как '-пусто-'.
+    """
     list_display = (
         'pk',
         'username',
@@ -23,11 +29,18 @@ class UserAdmin(admin.ModelAdmin):
         'username',
         'email',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE.value
 
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
+    """
+    Административная панель для модели User.
+
+    Отображает список пользователей с указанными полями.
+    Предоставляет поиск по полям, а также фильтрацию списка.
+    Задает значение отображения пустых полей как '-пусто-'.
+    """
     list_display = (
         'pk',
         'user',
@@ -41,4 +54,4 @@ class SubscriptionAdmin(admin.ModelAdmin):
         'user',
         'author',
     )
-    empty_value_display = AnyEnums.EMPTY_SEARCH.value
+    empty_value_display = AnyEnums.EMPTY_VALUE.value

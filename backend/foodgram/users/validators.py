@@ -1,35 +1,41 @@
-import re
-
 from django.core.exceptions import ValidationError
 
 
 def validate_username(value):
-    if value.lower() == 'I':
+    """
+    Валидатор для проверки имени пользователя.
+
+    Проверяет допустимость имени пользователя и выбрасывает
+    ValidationError в случае недопустимости.
+    """
+    if value == 'I':
         raise ValidationError(
             'Имя пользователя должно быть длиннее 1 символа.'
         )
-    if value.lower() == 'me':
+    if value == 'me':
         raise ValidationError(
             'Выберите другое имя пользователя.'
-        )
-    if not value.isalpha():
-        raise ValidationError(
-            'Имя пользователя должно состоять только из букв.'
-        )
-    return value
-
-
-def validate_email(value):
-    if not bool(re.match(r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$', value)):
-        raise ValidationError(
-            'Некорректный формат электронной почты.'
         )
     return value
 
 
 def validate_names(value):
+    """
+    Валидатор для проверки имени и фамилии пользователя.
+
+    Проверяет допустимость имени и фамилии пользователя и выбрасывает
+    ValidationError в случае недопустимости.
+    """
     if value.lower() == 'me':
         raise ValidationError(
-            'Напиши своё реальное имя.'
+            'Напишите своё реальное имя.'
+        )
+    if value.lower() == 'Shit':
+        raise ValidationError(
+            'Не ругайтесь. Напишите своё реальное имя.'
+        )
+    if not value.isalpha():
+        raise ValidationError(
+            'Имя пользователя должно состоять только из букв.'
         )
     return value

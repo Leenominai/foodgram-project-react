@@ -26,6 +26,9 @@ def validate_name(value):
 
 
 def validate_text(value):
+    """
+    Проверка описания рецепта.
+    """
     if len(value.strip()) < 2:
         raise ValidationError(
             'Описание рецепта должно содержать хотя бы 2 символа.'
@@ -35,14 +38,14 @@ def validate_text(value):
 
 def validate_cooking_time(value):
     """
-    Время приготовления не должно быть меньше 1 минуты.
+    Проверка времени приготовления рецепта.
     """
     MinValueValidator(1)(value)
 
 
 def validate_ingredients_amount(value):
     """
-    Время приготовления не должно быть меньше 1 минуты.
+    Проверка количества ингредиентов в рецепте.
     """
     MinValueValidator(1)(value)
 
