@@ -1,5 +1,4 @@
-from django_filters.rest_framework import filters, FilterSet
-
+from django_filters.rest_framework import FilterSet, filters
 from recipes.models import Ingredient, Recipe, Tag
 
 
@@ -61,7 +60,8 @@ class RecipeFilter(FilterSet):
         Метод для фильтрации рецептов по наличию в списке покупок.
 
         Если пользователь аутентифицирован и значение фильтра равно True,
-        то возвращаются только рецепты, которые есть в списке покупок пользователя.
+        то возвращаются только рецепты,
+        которые есть в списке покупок пользователя.
         В противном случае возвращается исходный queryset.
 
         :param queryset: исходный queryset рецептов

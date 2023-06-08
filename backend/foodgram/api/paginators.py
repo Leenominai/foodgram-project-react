@@ -7,6 +7,13 @@ class PageLimitPagination(PageNumberPagination):
 
 
 class RecipePagination(PageNumberPagination):
-    page_size = 6  # Количество рецептов на одной странице
-    page_size_query_param = 'recipes_limit'  # Параметр запроса для указания количества рецептов
-    max_page_size = 6  # Максимальное количество рецептов на одной странице
+    """
+    Пагинация рецептов.
+    page_size - Количество рецептов на одной странице
+    page_size_query_param - Параметр запроса для указания количества рецептов
+    max_page_size - Максимальное количество рецептов на одной странице
+    """
+
+    page_size = 6
+    page_size_query_param = 'recipes_limit'
+    max_page_size = 6

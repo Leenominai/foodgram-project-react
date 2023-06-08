@@ -1,15 +1,8 @@
-from django.conf import settings
 from django.contrib import admin
 
+from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                     ShoppingCart, Tag)
 from .utils import AnyEnums
-from .models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    ShoppingCart,
-    Tag
-)
 
 
 @admin.register(Tag)

@@ -1,5 +1,3 @@
-import re
-
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 
@@ -42,4 +40,3 @@ def validate_ingredients_amount(value):
     Проверка количества ингредиентов в рецепте.
     """
     MinValueValidator(1)(value)
-

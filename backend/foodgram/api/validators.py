@@ -5,7 +5,8 @@ def validate_tags(tags_ids, Tag):
     """
     Проверяет наличие тегов.
 
-    Проверяет, существуют ли все указанные теги, основываясь на их идентификаторах.
+    Проверяет, существуют ли все указанные теги,
+    основываясь на их идентификаторах.
     Если хотя бы один тег отсутствует, вызывается исключение ValidationError.
 
     :param tags_ids: список идентификаторов тегов
@@ -24,8 +25,8 @@ def validator_ingredients(ingredients, Ingredient):
 
     Проверяет список ингредиентов на корректность. Проверяется правильность
     указанного количества ингредиента, отрицательные или нулевые значения,
-    а также существование ингредиентов в базе данных. Если проверка не пройдена,
-    вызывается исключение ValidationError.
+    а также существование ингредиентов в базе данных.
+    Если проверка не пройдена, вызывается исключение ValidationError.
 
     :param ingredients: список ингредиентов
     :param Ingredient: модель Ingredient
@@ -47,7 +48,9 @@ def validator_ingredients(ingredients, Ingredient):
     if not ingredients_validate:
         raise ValidationError('Неправильные ингидиенты')
 
-    ingredients_db = Ingredient.objects.filter(pk__in=ingredients_validate.keys())
+    ingredients_db = Ingredient.objects.filter(
+        pk__in=ingredients_validate.keys()
+    )
     if not ingredients_db:
         raise ValidationError('Неправильные ингидиенты')
 

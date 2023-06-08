@@ -1,19 +1,13 @@
 from django.db import transaction
 from djoser.serializers import UserCreateSerializer, UserSerializer
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Tag)
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
+from users.models import Subscription, User
 
 from .paginators import RecipePagination
 from .utils import Base64ImageField, create_ingredients
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    Recipe,
-    RecipeIngredient,
-    ShoppingCart,
-    Tag
-)
-from users.models import User, Subscription
 
 
 class UserSignUpSerializer(UserCreateSerializer):
@@ -97,7 +91,11 @@ class UserSubscribeRepresentSerializer(UserGetSerializer):
         request = self.context.get('request')
         recipes_limit = None
         paginator = RecipePagination()
-        paginator.default_limit = recipes_limit if recipes_limit else self.Meta.model.objects.count()
+        paginator.default_limit = (
+            recipes_limit if recipes_limit else (
+                self.Meta.model.objects.count()
+            )
+        )
         recipes = obj.recipes.all()
         paginated_recipes = paginator.paginate_queryset(recipes, request)
         return RecipeSmallSerializer(paginated_recipes, many=True,
@@ -234,7 +232,8 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     def get_is_favorited(self, obj):
         """
-        Проверяет, добавлен ли рецепт `obj` в избранное у текущего пользователя.
+        Проверяет, добавлен ли рецепт `obj`
+        в избранное у текущего пользователя.
         """
         request = self.context.get('request')
         return (request and request.user.is_authenticated
@@ -244,7 +243,8 @@ class RecipeGetSerializer(serializers.ModelSerializer):
 
     def get_is_in_shopping_cart(self, obj):
         """
-        Проверяет, добавлен ли рецепт `obj` в список покупок у текущего пользователя.
+        Проверяет, добавлен ли рецепт `obj`
+        в список покупок у текущего пользователя.
         """
         request = self.context.get('request')
         return (request and request.user.is_authenticated
@@ -310,7 +310,8 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def update(self, instance, validated_data):
         """
-        Обновляет информацию о рецепте и связанных с ним объектах RecipeIngredient.
+        Обновляет информацию о рецепте и связанных
+        с ним объектах RecipeIngredient.
         """
         ingredients = validated_data.pop('recipeingredients')
         tags = validated_data.pop('tags')

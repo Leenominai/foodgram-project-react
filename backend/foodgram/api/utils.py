@@ -1,14 +1,13 @@
+import base64
 import os
 import stat
-import base64
-
-from django.shortcuts import get_object_or_404
-from django.core.files.base import File
-from rest_framework import serializers, status
-from rest_framework.response import Response
 from datetime import datetime
 
+from django.core.files.base import File
+from django.shortcuts import get_object_or_404
 from recipes.models import Ingredient, RecipeIngredient
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 
 class Base64ImageField(serializers.ImageField):
@@ -17,13 +16,18 @@ class Base64ImageField(serializers.ImageField):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
             ext = format.split('/')[-1]
-            filename = f"temp_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+            filename = (
+                f"temp_{datetime.now().strftime('%Y%m%d%H%M%S')}.{ext}"
+            )
             path = os.path.join('media/recipes/', filename)
 
             with open(path, 'wb') as f:
                 f.write(base64.b64decode(imgstr))
 
-            os.chmod(path, stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
+            os.chmod(
+                path,
+                stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+            )
 
             data = File(open(path, 'rb'), name=filename)
 

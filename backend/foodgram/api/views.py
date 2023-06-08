@@ -65,7 +65,10 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         elif request.method == 'DELETE':
-            Subscription.objects.filter(user=request.user, author=author).delete()
+            Subscription.objects.filter(
+                user=request.user,
+                author=author
+            ).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -129,9 +132,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
       `/api/recipes/download_shopping_cart/` позволяет скачать файл CSV со
       списком покупок для текущего пользователя.
 
-    При выполнении действий `favorites` и `shopping_cart` необходимо предоставить
-    токен авторизации в заголовке `Authorization` в формате
-    `Token <ваш_токен_авторизации>`.
+    При выполнении действий `favorites` и `shopping_cart`
+    необходимо предоставить токен авторизации в заголовке `Authorization`
+    в формате `Token <ваш_токен_авторизации>`.
 
     Параметры фильтрации для списка рецептов:
 
@@ -182,8 +185,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Права доступа: Авторизованный пользователь
 
         Принцип работы:
-        - При отправке POST-запроса добавляет рецепт в список избранных пользователя.
-        - При отправке DELETE-запроса удаляет рецепт из списка избранных пользователя.
+        - При отправке POST-запроса добавляет рецепт
+        в список избранных пользователя.
+        - При отправке DELETE-запроса удаляет рецепт
+        из списка избранных пользователя.
         """
         recipe = get_object_or_404(Recipe, id=pk)
         if request.method == 'POST':
@@ -215,8 +220,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         Права доступа: Авторизованный пользователь
 
         Принцип работы:
-        - При отправке POST-запроса добавляет рецепт в корзину покупок пользователя.
-        - При отправке DELETE-запроса удаляет рецепт из корзины покупок пользователя.
+        - При отправке POST-запроса добавляет рецепт
+        в корзину покупок пользователя.
+        - При отправке DELETE-запроса удаляет рецепт
+        из корзины покупок пользователя.
         """
         recipe = get_object_or_404(Recipe, id=pk)
 
@@ -273,6 +280,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             shopping_list.append(f'\n{name} - {amount}, {unit}')
 
         response = HttpResponse(shopping_list, content_type='text/plain')
-        response['Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
+        response['Content-Disposition'] = (
+            'attachment; filename="shopping_cart.txt"'
+        )
 
         return response
