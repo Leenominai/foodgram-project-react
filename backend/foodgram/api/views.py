@@ -7,7 +7,6 @@ from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .filters import IngredientFilter, RecipeFilter
 from .permissions import IsAuthorAdminModeratorOrReadOnly
@@ -34,7 +33,11 @@ from users.models import User, Subscription
 
 
 class UserSubscribeViewSet(viewsets.GenericViewSet):
-    """Создание/удаление подписки на пользователя."""
+    """
+    Создание/удаление подписки на пользователя.
+
+    Позволяет создавать и удалять подписку на пользователя.
+    """
     def get_queryset(self):
         return User.objects.filter(following__user=self.request.user)
 
@@ -83,7 +86,9 @@ class UserSubscribeViewSet(viewsets.GenericViewSet):
 
 class UserSubscriptionsViewSet(mixins.ListModelMixin,
                                viewsets.GenericViewSet):
-    """Получение списка всех подписок на пользователей."""
+    """
+    Получение списка всех подписок на пользователей.
+    """
     serializer_class = UserSubscribeRepresentSerializer
 
     def get_queryset(self):

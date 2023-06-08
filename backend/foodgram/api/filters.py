@@ -3,7 +3,26 @@ from django_filters.rest_framework import filters, FilterSet
 from recipes.models import Ingredient, Recipe, Tag
 
 
+class IngredientFilter(FilterSet):
+    """
+    Фильтр для ингредиентов.
+
+    Позволяет фильтровать ингредиенты по имени.
+    """
+    name = filters.CharFilter(lookup_expr='istartswith')
+
+    class Meta:
+        model = Ingredient
+        fields = ('name', )
+
+
 class RecipeFilter(FilterSet):
+    """
+    Фильтр для рецептов.
+
+    Позволяет фильтровать рецепты по тегам,
+    наличию в избранном и наличию в списке покупок.
+    """
     tags = filters.ModelMultipleChoiceFilter(
         queryset=Tag.objects.all(),
         field_name='tags__slug',
@@ -21,19 +40,35 @@ class RecipeFilter(FilterSet):
         fields = ('author', 'tags', 'is_favorited', 'is_in_shopping_cart')
 
     def get_is_favorited(self, queryset, name, value):
+        """
+        Метод для фильтрации рецептов по наличию в избранном.
+
+        Если пользователь аутентифицирован и значение фильтра равно True,
+        то возвращаются только рецепты, которые есть в избранном пользователя.
+        В противном случае возвращается исходный queryset.
+
+        :param queryset: исходный queryset рецептов
+        :param name: имя фильтра
+        :param value: значение фильтра
+        :return: отфильтрованный queryset
+        """
         if self.request.user.is_authenticated and value:
             return queryset.filter(favorites__user=self.request.user)
         return queryset
 
     def get_is_in_shopping_cart(self, queryset, name, value):
+        """
+        Метод для фильтрации рецептов по наличию в списке покупок.
+
+        Если пользователь аутентифицирован и значение фильтра равно True,
+        то возвращаются только рецепты, которые есть в списке покупок пользователя.
+        В противном случае возвращается исходный queryset.
+
+        :param queryset: исходный queryset рецептов
+        :param name: имя фильтра
+        :param value: значение фильтра
+        :return: отфильтрованный queryset
+        """
         if self.request.user.is_authenticated and value:
             return queryset.filter(carts__user=self.request.user)
         return queryset
-
-
-class IngredientFilter(FilterSet):
-    name = filters.CharFilter(lookup_expr='istartswith')
-
-    class Meta:
-        model = Ingredient
-        fields = ('name', )
