@@ -10,4 +10,4 @@ COPY foodgram/ /app
 
 CMD ["gunicorn", "foodgram.wsgi:application", "--bind", "0:8000" ]
 
-LABEL author='Leenominai' version=0.1 broken_keyboards=1
+LABEL author='Leenominai' version='Foodgramv 2.05' broken_keyboards=1

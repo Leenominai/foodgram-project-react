@@ -10,6 +10,7 @@ pytest-django==4.4.0
 pytest-pythonpath==0.7.3
 Pillow==9.5.0
 django-extra-fields==3.0.2
-djoser
-djangorestframework-simplejwt==4.7.2
-PyJWT==2.1.0
+djoser==2.1.0
+sqlparse==0.3.1
+asgiref==3.3.2
+pytz==2020.1
