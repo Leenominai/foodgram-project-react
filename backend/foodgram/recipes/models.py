@@ -1,12 +1,8 @@
 from django.db import models
-
-from .validators import (
-    validate_name,
-    validate_cooking_time,
-    validate_ingredients_amount,
-    validate_text
-)
 from users.models import User
+
+from .validators import (validate_cooking_time, validate_ingredients_amount,
+                         validate_name, validate_text)
 
 
 class Tag(models.Model):
@@ -181,7 +177,8 @@ class Favorite(models.Model):
         verbose_name_plural = 'Избранное'
 
     def __str__(self):
-        return f'{self.user.username} добавил {self.recipe.name} в избраннные рецепты.'
+        return f'{self.user.username} добавил {self.recipe.name} ' \
+               f'в избраннные рецепты.'
 
 
 class ShoppingCart(models.Model):

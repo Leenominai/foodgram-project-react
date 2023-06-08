@@ -14,3 +14,4 @@ djoser==2.1.0
 sqlparse==0.3.1
 asgiref==3.3.2
 pytz==2020.1
+isort==5.11.5
