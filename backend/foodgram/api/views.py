@@ -1,6 +1,7 @@
 import json
 
-from django.db.models import Sum
+from django.db.models import Sum, F
+from django.db.models.functions import Lower
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import HttpResponse, get_object_or_404
 from rest_framework import mixins, status, viewsets
@@ -68,7 +69,20 @@ class UserSubscriptionsViewSet(mixins.ListModelMixin,
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-    """Получение информации о тегах."""
+    """
+    Работает с тегами.
+    Позволяет получать информацию о тегах, используемых в рецептах.
+    GET /api/tags/ - Получение списка всех тегов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Завтрак",
+            "slug": "breakfast"
+        },
+        ...
+    ]
+    """
     queryset = Tag.objects.all()
     serializer_class = TagSerialiser
     permission_classes = (AllowAny, )
@@ -76,13 +90,27 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
-    """Получение информации об ингредиентах."""
+    """
+    Работает с ингредиентами.
+    Позволяет получать информацию о доступных ингредиентах.
+    GET /api/ingredients/ - Получение списка всех ингредиентов.
+    Пример ответа:
+    [
+        {
+            "id": 1,
+            "name": "Мука",
+            "measurement_unit": "г",
+            "slug": "flour"
+        },
+        ...
+    ]
+    """
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny, )
+    pagination_class = None
     filter_backends = (DjangoFilterBackend, )
     filterset_class = IngredientFilter
-    pagination_class = None
 
     @action(
         detail=False,
@@ -121,12 +149,76 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
         return Response({'message': 'Все ингредиенты успешно загружены.'}, status=status.HTTP_200_OK)
 
+    @action(
+        detail=False,
+        methods=['delete'],
+        permission_classes=[IsAuthorAdminModeratorOrReadOnly]
+    )
+    def delete_all(self, request):
+        """
+        Удаление всех ингредиентов из базы данных.
+
+        Адрес: /api/ingredients/delete_all/
+        Метод: DELETE
+        Права доступа: Автор, администратор или модератор
+
+        Принцип работы:
+        - Удаляет все объекты Ingredient из базы данных.
+        - Возвращает успешное сообщение об удалении всех ингредиентов.
+
+        Пример ответа:
+        {
+            "message": "Все ингредиенты успешно удалены."
+        }
+        """
+        Ingredient.objects.all().delete()
+        return Response({'message': 'Все ингредиенты успешно удалены.'})
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """Работа с рецептами. Создание/изменение/удаление рецепта.
-    Получение информации о рецептах.
-    Добавление рецептов в избранное и список покупок.
-    Отправка файла со списком рецептов.
+    """
+    Представление для работы с информацией о рецептах.
+    Включает создание, изменение, удаление рецептов,
+    добавление рецептов в избранное и список покупок,
+    а также отправку файла со списком рецептов.
+
+    URL-адреса для действий в этом представлении:
+
+    - `favorites`: POST и DELETE запросы по адресу
+      `/api/recipes/{pk}/favorites/` позволяют добавлять и удалять рецепты из
+      избранного для конкретного рецепта с идентификатором `{pk}`.
+    - `shopping_cart`: POST и DELETE запросы по адресу
+      `/api/recipes/{pk}/shopping_cart/` позволяют добавлять и удалять рецепты
+      из списка покупок для конкретного рецепта с идентификатором `{pk}`.
+    - `download_shopping_cart`: GET запрос по адресу
+      `/api/recipes/download_shopping_cart/` позволяет скачать файл CSV со
+      списком покупок для текущего пользователя.
+
+    При выполнении действий `favorites` и `shopping_cart` необходимо предоставить
+    токен авторизации в заголовке `Authorization` в формате
+    `Token <ваш_токен_авторизации>`.
+
+    Параметры фильтрации для списка рецептов:
+
+    - `tags`: список тегов рецептов, по которым будет производиться фильтрация.
+    - `author`: фильтрация по имени автора рецепта.
+    - `shopping_cart`: значение `true` или `false` для фильтрации рецептов в
+      списке покупок.
+    - `favorite`: значение `true` или `false` для фильтрации избранных рецептов
+      для текущего пользователя.
+
+    При выполнении фильтрации по `tags` и `author` будет возвращен список рецептов,
+    соответствующих фильтру. При выполнении фильтрации по `shopping_cart` и
+    `favorite` будет возвращен список рецептов, принадлежащих текущему пользователю
+    и находящихся в списке покупок или избранном соответственно.
+
+    При выполнении запроса `download_shopping_cart` будет сформирован файл CSV со
+    списком покупок для текущего пользователя.
+
+    При выполнении запросов на создание и удаление избранного или списка покупок
+    будет возвращен статусный код 200 OK в случае успешного выполнения запроса или
+    статусный код 400 BAD REQUEST, если произошла ошибка или указанный рецепт уже
+    находится в избранном или списке покупок.
     """
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthorAdminModeratorOrReadOnly, )
@@ -145,17 +237,53 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, ]
     )
     def favorite(self, request, pk):
-        """Работа с избранными рецептами.
-        Удаление/добавление в избранное.
+        """
+        Добавление и удаление рецептов из избранного.
+
+        Адрес: /api/recipes/{pk}/favorite/
+        Методы: POST, DELETE
+        Права доступа: Авторизованный пользователь
+
+        Принцип работы:
+        - При отправке POST-запроса добавляет рецепт в список избранных пользователя.
+        - При отправке DELETE-запроса удаляет рецепт из списка избранных пользователя.
+
+        Пример ответа при успешном добавлении:
+        HTTP 200 OK
+
+        Пример ответа при попытке повторного добавления:
+        HTTP 400 BAD REQUEST
+
+        Пример ответа при успешном удалении:
+        HTTP 200 OK
+
+        Пример ответа при отсутствии рецепта в списке избранных:
+        HTTP 204 NO CONTENT
         """
         recipe = get_object_or_404(Recipe, id=pk)
         if request.method == 'POST':
-            return create_model_instance(request, recipe, FavoriteSerializer)
+            response = create_model_instance(
+                request,
+                recipe,
+                FavoriteSerializer
+            )
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return response
 
         if request.method == 'DELETE':
-            error_message = 'У вас нет этого рецепта в избранном'
-            return delete_model_instance(request, Favorite,
-                                         recipe, error_message)
+            error_message = 'Данный рецепт отсутствует в вашем избранного.'
+            response = delete_model_instance(
+                request,
+                Favorite,
+                recipe,
+                error_message
+            )
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return response
 
     @action(
         detail=True,
@@ -163,18 +291,50 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, ]
     )
     def shopping_cart(self, request, pk):
-        """Работа со списком покупок.
-        Удаление/добавление в список покупок.
+        """
+        Добавление и удаление рецептов в корзину покупок.
+
+        Адрес: /api/recipes/{pk}/shopping_cart/
+        Методы: POST, DELETE
+        Права доступа: Авторизованный пользователь
+
+        Принцип работы:
+        - При отправке POST-запроса добавляет рецепт в корзину покупок пользователя.
+        - При отправке DELETE-запроса удаляет рецепт из корзины покупок пользователя.
+
+        Пример ответа при успешном добавлении:
+        HTTP 200 OK
+
+        Пример ответа при успешном удалении:
+        HTTP 204 NO CONTENT
         """
         recipe = get_object_or_404(Recipe, id=pk)
+
         if request.method == 'POST':
-            return create_model_instance(request, recipe,
-                                         ShoppingCartSerializer)
+            response = create_model_instance(
+                request,
+                recipe,
+                ShoppingCartSerializer
+            )
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return response
 
         if request.method == 'DELETE':
             error_message = 'У вас нет этого рецепта в списке покупок'
-            return delete_model_instance(request, ShoppingCart,
-                                         recipe, error_message)
+            response = delete_model_instance(
+                request,
+                ShoppingCart,
+                recipe,
+                error_message
+            )
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return response
+
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
     @action(
         detail=False,
@@ -182,19 +342,41 @@ class RecipeViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, ]
     )
     def download_shopping_cart(self, request):
-        """Отправка файла со списком покупок."""
+        """
+        Загрузка файла со списком покупок.
+        Ингредиенты не дублируются, их кол-во суммируется.
+
+        Адрес: /api/download_shopping_cart/
+        Метод: GET
+        Права доступа: Аутентифицированный пользователь
+
+        Принцип работы:
+        - Проверяет наличие списка покупок для текущего пользователя.
+        - Создает TXT-файл с данными о покупках.
+        - Возвращает файл для скачивания.
+
+        Пример ответа:
+        - Если список покупок пуст:
+          HTTP 400 Bad Request
+        - Если список покупок не пуст:
+          HTTP 200 OK
+          Файл TXT с данными о покупках для скачивания.
+        """
         ingredients = RecipeIngredient.objects.filter(
             recipe__carts__user=request.user
         ).values(
-            'ingredient__name', 'ingredient__measure_unit'
+            'ingredient__name',
+            'ingredient__measure_unit'
         ).annotate(ingredient_amount=Sum('amount'))
+
         shopping_list = ['Список покупок:\n']
         for ingredient in ingredients:
             name = ingredient['ingredient__name']
             unit = ingredient['ingredient__measure_unit']
             amount = ingredient['ingredient_amount']
             shopping_list.append(f'\n{name} - {amount}, {unit}')
+
         response = HttpResponse(shopping_list, content_type='text/plain')
-        response['Content-Disposition'] = \
-            'attachment; filename="shopping_cart.txt"'
+        response['Content-Disposition'] = 'attachment; filename="shopping_cart.txt"'
+
         return response
