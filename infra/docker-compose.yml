@@ -10,7 +10,7 @@ services:
       - ./.env
 
   web:
-    image: leenominai/backend:latest
+    image: leenominai/backend
     restart: always
     volumes:
       - static_value:/app/static/
@@ -21,7 +21,7 @@ services:
       - ./.env
 
   frontend:
-    image: leenominai/frontend:latest
+    image: leenominai/frontend
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
