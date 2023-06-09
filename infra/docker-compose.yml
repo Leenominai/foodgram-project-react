@@ -12,13 +12,13 @@ services:
       - ./.env
 
   frontend:
-    container_name: frontend-front
+    container_name: foodgram-frontend
     image: leenominai/frontend:latest
     volumes:
       - ./frontend/:/app/result_build/
 
   backend:
-    container_name: foodgram-app
+    container_name: foodgram-backend
     image: leenominai/backend:latest
     restart: always
     volumes:
