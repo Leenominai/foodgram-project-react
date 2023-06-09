@@ -81,11 +81,11 @@ DATABASES = {
         ),
         'NAME': os.getenv(
             'DB_NAME',
-            default="postgres"
+            default="foodgram"
         ),
         'USER': os.getenv(
             'POSTGRES_USER',
-            default="postgres"
+            default="foodgram_user"
         ),
         'PASSWORD': os.getenv(
             'POSTGRES_PASSWORD',
