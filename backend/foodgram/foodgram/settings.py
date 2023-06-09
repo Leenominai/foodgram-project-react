@@ -89,7 +89,7 @@ DATABASES = {
         ),
         'PASSWORD': os.getenv(
             'POSTGRES_PASSWORD',
-            default="postgres"
+            default="sasha777"
         ),
         'HOST': os.getenv(
             'DB_HOST',
