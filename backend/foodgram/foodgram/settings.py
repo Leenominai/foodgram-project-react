@@ -81,11 +81,11 @@ DATABASES = {
         ),
         'NAME': os.getenv(
             'DB_NAME',
-            default="foodgram"
+            default="postgres"
         ),
         'USER': os.getenv(
             'POSTGRES_USER',
-            default="foodgram_user_admin"
+            default="postgres"
         ),
         'PASSWORD': os.getenv(
             'POSTGRES_PASSWORD',
@@ -93,7 +93,7 @@ DATABASES = {
         ),
         'HOST': os.getenv(
             'DB_HOST',
-            default="farexzon_db_1"
+            default="db"
         ),
         'PORT': os.getenv(
             'DB_PORT',
