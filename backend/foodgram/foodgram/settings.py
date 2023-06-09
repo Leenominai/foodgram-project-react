@@ -93,7 +93,7 @@ DATABASES = {
         ),
         'HOST': os.getenv(
             'DB_HOST',
-            default="db"
+            default="farexzon_db_1"
         ),
         'PORT': os.getenv(
             'DB_PORT',
