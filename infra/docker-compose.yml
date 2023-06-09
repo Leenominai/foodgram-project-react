@@ -1,50 +1,47 @@
 version: '3.8'
-
 services:
 
   db:
-    container_name: foodgram-db
     image: postgres:13.0-alpine
-    restart: always
     volumes:
       - db_data:/var/lib/postgresql/data/
     env_file:
       - ./.env
 
-  frontend:
-    container_name: foodgram-frontend
-    image: leenominai/frontend:latest
-    volumes:
-      - ./frontend/:/app/result_build/
-
-  backend:
-    container_name: foodgram-backend
-    image: leenominai/backend:latest
+  web:
+    image: leenominai/backend
     restart: always
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
+    depends_on:
+      - db
     env_file:
       - ./.env
 
+  frontend:
+    image: leenominai/frontend
+    volumes:
+      - ../frontend/:/app/result_build/
+    depends_on:
+      - web
+
   nginx:
-    container_name: foodgram-proxy
-    image: nginx:1.23.3-alpine
-    restart: always
+    image: nginx:1.21.3-alpine
     ports:
-      - "8001:80"
+      - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./frontend/build:/usr/share/nginx/html/
-      - ./docs/:/usr/share/nginx/html/api/docs/
-      - static_value:/etc/nginx/html/static/
-      - media_value:/etc/nginx/html/media/
+      - ../frontend/build:/usr/share/nginx/html/
+      - ../docs/:/usr/share/nginx/html/api/docs/
+      - static_value:/var/html/static/
+      - media_value:/var/html/media/
     depends_on:
-      - backend
+      - web
       - frontend
+    restart: always
 
 volumes:
   static_value:
   media_value:
   db_data:
-...
