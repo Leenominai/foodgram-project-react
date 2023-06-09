@@ -49,7 +49,7 @@ jobs:
         tags: ${{ secrets.DOCKER_USERNAME }}/backend:latest
 
   build_push_frontend_to_DockerHub:
-    name: Building front image and pushing it to Docker Hub
+    name: Building front image and pushing it to DockerHub
     runs-on: ubuntu-20.04
     needs: tests
     steps:
