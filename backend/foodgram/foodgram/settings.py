@@ -85,7 +85,7 @@ DATABASES = {
         ),
         'USER': os.getenv(
             'POSTGRES_USER',
-            default="foodgram_user"
+            default="foodgram_user_admin"
         ),
         'PASSWORD': os.getenv(
             'POSTGRES_PASSWORD',
