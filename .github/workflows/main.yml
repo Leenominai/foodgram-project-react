@@ -23,7 +23,7 @@ jobs:
         pip install -r requirements.txt
     - name: Test with flake8 and django tests
       run: |
-        python -m flake8 --exclude=*/migrations/*
+        python -m flake8
 
   build_push_backend_to_DockerHub:
     name: Building back image and pushing it to Docker Hub
@@ -88,6 +88,8 @@ jobs:
         script: |
           cd foodgram/
           touch .env
+          echo ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }} >> .env
+          echo CSRF_TRUSTED_ORIGINS=${{ secrets.CSRF_TRUSTED_ORIGINS }} >> .env
           echo DB_ENGINE=${{ secrets.DB_ENGINE }} >> .env
           echo DB_NAME=${{ secrets.DB_NAME }} >> .env
           echo POSTGRES_USER=${{ secrets.POSTGRES_USER }} >> .env

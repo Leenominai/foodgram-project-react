@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 from pathlib import Path
 
+from decouple import Csv, config
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +24,13 @@ SECRET_KEY = '%3n@)0nz+i1dq4u)(kj@v4#068v2v77z55-z6vdp2t=k1&cv(5'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='*', cast=Csv())
+
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='http://localhost, http://127.0.0.1',
+    cast=Csv()
+)
 
 # Application definition
 INSTALLED_APPS = [
