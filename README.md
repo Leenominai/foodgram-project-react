@@ -4,19 +4,10 @@
 
 ## Описание:
 
-+ http://62.84.123.114/recipes - сайт
-<<<<<<< HEAD
++ http://158.160.26.99/recipes - сайт
++ http://158.160.26.99/admin/ - админка
+
 + http://lnm-practicum.ddns.net/recipes
-=======
->>>>>>> d1be8aacb2fe21660d529bbe25d792c0eab7c783
-
-+ http://62.84.123.114/admin/ - админка
-
-login = admin
-
-password = sasha777
-
-email = farexzon@yandex.ru
 
 (Остальное позже допишу)
 
